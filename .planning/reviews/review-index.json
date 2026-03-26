@@ -1,0 +1,29 @@
+{
+  "reviews": [
+    {
+      "date": "2026-03-26",
+      "type": "deep-review",
+      "mode": "pre-build",
+      "scope": "All planning documents",
+      "file": "2026-03-26-deep-review.md",
+      "counts": { "critical": 2, "high": 6, "medium": 13, "low": 4 },
+      "structuralPatterns": ["missing-integration-seams", "research-to-plan-drift"]
+    }
+  ],
+  "patterns": {
+    "missing-integration-seams": {
+      "name": "Missing Integration Seams",
+      "firstSeen": "2026-03-26",
+      "reviews": ["2026-03-26-deep-review.md"],
+      "status": "fix-in-progress",
+      "fixPhase": 1
+    },
+    "research-to-plan-drift": {
+      "name": "Research-to-Plan Drift",
+      "firstSeen": "2026-03-26",
+      "reviews": ["2026-03-26-deep-review.md"],
+      "status": "fix-in-progress",
+      "fixPhase": 3
+    }
+  }
+}
