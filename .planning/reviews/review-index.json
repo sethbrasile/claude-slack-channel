@@ -15,15 +15,13 @@
       "name": "Missing Integration Seams",
       "firstSeen": "2026-03-26",
       "reviews": ["2026-03-26-deep-review.md"],
-      "status": "fix-in-progress",
-      "fixPhase": 1
+      "status": "open"
     },
     "research-to-plan-drift": {
       "name": "Research-to-Plan Drift",
       "firstSeen": "2026-03-26",
       "reviews": ["2026-03-26-deep-review.md"],
-      "status": "fix-in-progress",
-      "fixPhase": 3
+      "status": "open"
     }
   }
 }
