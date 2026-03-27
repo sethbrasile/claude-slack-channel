@@ -8,7 +8,7 @@ import { parseConfig, safeErrorMessage } from './config.ts'
 import { formatPermissionRequest, parsePermissionReply } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig, PermissionRequest } from './types.ts'
+import type { ChannelConfig } from './types.ts'
 
 export function createServer(config: ChannelConfig): Server {
   const server = new Server(
@@ -160,7 +160,7 @@ if (import.meta.main) {
   })
 
   server.setNotificationHandler(PermissionRequestSchema, async ({ params }) => {
-    const text = formatPermissionRequest(params as PermissionRequest)
+    const text = formatPermissionRequest(params)
     // Post the permission prompt IN the active thread so it appears inline
     // with the command that triggered it. Falls back to top-level if there
     // is no active thread (e.g. fire-and-forget command with no question phase).
@@ -248,6 +248,11 @@ if (import.meta.main) {
     console.error(`[shutdown] ${signal}`)
     try {
       await socketMode.disconnect()
+    } catch (_err) {
+      // ignore
+    }
+    try {
+      await messageQueue // drain in-flight messages before closing transport
     } catch (_err) {
       // ignore
     }
