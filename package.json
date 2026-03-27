@@ -27,6 +27,9 @@
     "examples"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "claude-code",
     "mcp",
