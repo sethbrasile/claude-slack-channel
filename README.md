@@ -39,19 +39,36 @@ Claude Code can run unattended — but sometimes it needs a human to approve a d
 ### 1. Create a Slack app
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) > **Create New App** > **From a manifest**
-2. Paste [`slack-app-manifest.yaml`](./slack-app-manifest.yaml) into the YAML tab
-3. Install the app to your workspace
+2. Select your workspace, then paste [`slack-app-manifest.yaml`](./slack-app-manifest.yaml) into the **YAML** tab
+3. Review the summary and click **Create**
 
-### 2. Grab your credentials
+The manifest pre-configures Socket Mode, event subscriptions, bot scopes, and interactivity. You should not need to change any settings manually.
+
+### 2. Generate the App-Level Token
+
+The manifest enables Socket Mode, but the app-level token must be created separately:
+
+1. On the **Basic Information** page (you land here after creating the app), scroll to **App-Level Tokens**
+2. Click **Generate Token and Scopes**
+3. Name it anything (e.g. `socket-mode`)
+4. Click **Add Scope** and select **`connections:write`**
+5. Click **Generate** and copy the token (`xapp-...`) — it is only shown in full once
+
+### 3. Install to your workspace
+
+1. In the sidebar, go to **OAuth & Permissions**
+2. Click **Install to _[your workspace]_** (or **Reinstall** if you've installed before)
+3. Review the permissions and click **Allow**
+4. Copy the **Bot User OAuth Token** (`xoxb-...`) that appears on the page
+
+### 4. Collect your IDs
 
 | What | Where to find it |
 |------|-----------------|
-| Bot token (`xoxb-...`) | OAuth & Permissions > Bot User OAuth Token |
-| App token (`xapp-...`) | Basic Information > App-Level Tokens > create with `connections:write` |
-| Channel ID (`C0...`) | Right-click channel > Copy link > last segment of URL |
-| Your user ID (`U0...`) | Click your profile > ... > Copy member ID |
+| Channel ID (`C0...`) | Right-click the channel in Slack > **Copy link** > last path segment of the URL |
+| Your user ID (`U0...`) | Click your profile picture > **Profile** > **⋮** > **Copy member ID** |
 
-### 3. Add to `.mcp.json`
+### 5. Add to `.mcp.json`
 
 ```json
 {
@@ -70,7 +87,7 @@ Claude Code can run unattended — but sometimes it needs a human to approve a d
 }
 ```
 
-### 4. Invite the bot and start Claude
+### 6. Invite the bot and start Claude
 
 ```bash
 # In Slack: /invite @YourBotName
