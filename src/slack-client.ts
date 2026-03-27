@@ -72,7 +72,7 @@ export function createStderrLogger(): Logger {
     debug: (...msgs: unknown[]) => console.error('[slack:debug]', ...msgs),
     info: (...msgs: unknown[]) => console.error('[slack:info]', ...msgs),
     warn: (...msgs: unknown[]) => console.error('[slack:warn]', ...msgs),
-    error: (...msgs: unknown[]) => console.error('[slack:error]', ...msgs),
+    error: (...msgs: unknown[]) => console.error('[slack:error]', ...msgs.map(safeErrorMessage)),
     setLevel: (_level: LogLevel) => {},
     setName: (_name: string) => {},
     getLevel: () => LogLevel.INFO,
@@ -85,6 +85,24 @@ export function createStderrLogger(): Logger {
 
 // TTL for seen ts entries: 30 seconds
 const DEDUP_TTL_MS = 30_000
+
+/**
+ * Validates that a Slack event has a usable ts field.
+ *
+ * Returns the ts string when present and non-empty. Returns null and logs
+ * `[slack-client] event without ts` to stderr when ts is missing or empty.
+ *
+ * Extracted as a pure function so the ts-guard behavior can be unit-tested
+ * without mocking SocketModeClient. @internal — testing seam only.
+ */
+export function validateEventTs(ts: string | undefined): string | null {
+  const normalized = ts ?? ''
+  if (!normalized) {
+    console.error('[slack-client] event without ts')
+    return null
+  }
+  return normalized
+}
 
 /**
  * Creates the Slack Socket Mode client.
@@ -139,8 +157,8 @@ export function createSlackClient(
         if (now > expiry) seenTs.delete(ts)
       }
 
-      const ts = event.ts ?? ''
-      if (!ts || seenTs.has(ts)) return
+      const ts = validateEventTs(event.ts)
+      if (ts === null || seenTs.has(ts)) return
       seenTs.set(ts, now + DEDUP_TTL_MS)
 
       const msg: SlackMessage = {
