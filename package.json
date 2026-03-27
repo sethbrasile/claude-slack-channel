@@ -1,6 +1,6 @@
 {
   "name": "claude-slack-channel",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Claude Code Channel MCP server for Slack — bidirectional interactive bridge via Socket Mode",
   "type": "module",
   "bin": {

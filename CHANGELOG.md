@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-27
+
+### Added
+
+- **Interactive Approve/Deny buttons** on permission requests — Block Kit buttons replace the text-only prompt. One tap to approve or deny; the message updates in-place to show who acted.
+- Text-based `yes/no {id}` replies still work as a fallback alongside buttons.
+- `formatPermissionBlocks()` and `formatPermissionResult()` exports from `permission.ts` — Block Kit message builders for permission prompts and resolved verdicts.
+- `parseButtonAction()` export from `permission.ts` — parses Slack button `action_id` into a permission verdict.
+- Interactive event handler in `slack-client.ts` — listens for `interactive` Socket Mode events, validates user allowlist, and forwards button actions.
+- Slack app manifest now includes `interactivity.is_enabled: true` for button support.
+
 ## [0.2.0] - 2026-03-27
 
 ### Breaking Changes

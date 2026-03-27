@@ -13,9 +13,9 @@ An MCP server that bridges Claude Code sessions to a Slack channel via Socket Mo
    1. │──── "deploy to staging" ────────────────▶│
       │                                          │ runs tasks...
       │                                          │
-   2. │◀─── 🔒 "Allow rm -rf node_modules?" ────│
+   2. │◀─── 🔒 [Approve] [Deny] ───────────────│
       │                                          │
-   3. │──── "yes a1b2c" ───────────────────────▶│
+   3. │──── clicks [Approve] ──────────────────▶│
       │                                          │ continues...
       │                                          │
    4. │◀─── "Done. Deployed to staging." ────────│
@@ -28,7 +28,7 @@ An MCP server that bridges Claude Code sessions to a Slack channel via Socket Mo
 
 Claude Code can run unattended — but sometimes it needs a human to approve a dangerous tool call. Without a channel server, that means sitting in front of a terminal. With `claude-slack-channel`, you start a job, walk away, and approve permissions from Slack when they come in.
 
-**Key differentiator:** The permission relay. Other Slack bridges forward messages, but this one also relays Claude's permission requests so you can approve `rm`, `git push`, file writes, and other sensitive operations from Slack.
+**Key differentiator:** The permission relay. Other Slack bridges forward messages, but this one also relays Claude's permission requests with interactive **Approve / Deny** buttons so you can approve `rm`, `git push`, file writes, and other sensitive operations from Slack — one tap on your phone.
 
 ---
 
@@ -97,21 +97,24 @@ Claude:  Looking at the test file now...
 
 ### Permission relay
 
-When Claude wants to do something sensitive, it asks in-thread:
+When Claude wants to do something sensitive, it posts an interactive prompt in-thread:
 
 ```
 Claude:  :lock: Permission Request `a1b2c`
          Tool: bash
-         Description: Run shell command
-         ```
-         rm -rf node_modules && npm install
-         ```
-         Reply `yes a1b2c` or `no a1b2c`
+         Action: Run shell command
+         ┌─────────────────────────────────────────┐
+         │ rm -rf node_modules && npm install       │
+         └─────────────────────────────────────────┘
+         [ Approve ]  [ Deny ]
+         Or reply `yes a1b2c` / `no a1b2c`
 
-You:     yes a1b2c
+         ✅ Approved by @you
 
 Claude:  Done — clean install complete, all 47 tests passing.
 ```
+
+Click **Approve** or **Deny** — the message updates in-place to show who acted. Text replies (`yes`/`no` + ID) still work as a fallback.
 
 ### New commands
 
@@ -145,10 +148,11 @@ The server tracks one active thread at a time using a `ThreadTracker` state mach
 ### Permission relay
 
 1. Claude requests permission for a tool call (e.g., `bash`, `write`)
-2. The server formats the request and posts it in the active thread
-3. You reply `yes <id>` or `no <id>` (shorthands `y`/`n` work, case-insensitive)
-4. The verdict is forwarded to Claude — **not** echoed as a channel message
-5. Claude proceeds or aborts based on your response
+2. The server posts a Block Kit message in-thread with **Approve** / **Deny** buttons
+3. You click a button (or reply `yes <id>` / `no <id>` as a text fallback)
+4. The message updates in-place to show who approved/denied
+5. The verdict is forwarded to Claude — **not** echoed as a channel message
+6. Claude proceeds or aborts based on your response
 
 ### Architecture
 
@@ -194,7 +198,7 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ```bash
 bun install
-bun test              # 64 tests
+bun test              # 97 tests
 bunx tsc --noEmit     # typecheck
 bunx biome check .    # lint
 ```

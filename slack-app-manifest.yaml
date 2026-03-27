@@ -38,6 +38,8 @@ settings:
     bot_events:
       - message.channels  # public channel messages
       - message.groups    # private channel messages
+  interactivity:
+    is_enabled: true      # required for Approve/Deny buttons on permission requests
   socket_mode_enabled: true
   is_hosted: false
   token_rotation_enabled: false
