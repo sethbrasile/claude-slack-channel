@@ -1,6 +1,7 @@
 import type { Logger } from '@slack/logger'
 import { LogLevel, SocketModeClient } from '@slack/socket-mode'
 import { WebClient } from '@slack/web-api'
+import { safeErrorMessage } from './config.ts'
 
 // ============================================================
 // Interfaces
@@ -125,7 +126,7 @@ export function createSlackClient(
   // TTL dedup map: ts -> expiry timestamp
   const seenTs = new Map<string, number>()
 
-  const web = new WebClient(botToken, { logger })
+  const web = new WebClient(botToken, { logger, retryConfig: { retries: 3 } })
 
   const socketMode = new SocketModeClient({
     appToken,
@@ -141,7 +142,7 @@ export function createSlackClient(
       try {
         await ack()
       } catch (err) {
-        console.error('[slack-client] ack failed:', err)
+        console.error('[slack-client] ack failed:', safeErrorMessage(err))
         return
       }
 

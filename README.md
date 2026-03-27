@@ -80,7 +80,7 @@ All configuration is via environment variables (set in `.mcp.json` `env` block o
 |---|---|---|
 | `SLACK_BOT_TOKEN` | Yes | Bot User OAuth Token. Must start with `xoxb-`. |
 | `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode. Must start with `xapp-`. |
-| `SLACK_CHANNEL_ID` | Yes | The Slack channel to listen on. Must start with `C0` or similar channel ID format. |
+| `SLACK_CHANNEL_ID` | Yes | The Slack channel to listen on (e.g. `C0XXXXXXXXX`). |
 | `ALLOWED_USER_IDS` | Yes | Comma-separated list of Slack user IDs allowed to send commands. Each ID must start with `U0` or `W0`. |
 | `SERVER_NAME` | No | Identifier shown in Claude's context. Defaults to `slack`. Use a project-specific name when running multiple server instances on a shared machine. |
 

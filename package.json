@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Claude Code Channel MCP server for Slack — bidirectional interactive bridge via Socket Mode",
   "type": "module",
-  "main": "src/server.ts",
   "bin": {
     "claude-slack-channel": "src/server.ts"
   },
@@ -23,10 +22,21 @@
     "src",
     "!src/__tests__",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
+    "slack-app-manifest.yaml",
     "examples"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sethbrasile/claude-slack-channel.git"
+  },
+  "author": "Seth Brasile",
+  "homepage": "https://github.com/sethbrasile/claude-slack-channel#readme",
+  "bugs": {
+    "url": "https://github.com/sethbrasile/claude-slack-channel/issues"
+  },
   "publishConfig": {
     "access": "public"
   },

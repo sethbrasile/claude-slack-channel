@@ -10,7 +10,12 @@ const ConfigSchema = z.object({
   ALLOWED_USER_IDS: z
     .string()
     .min(1, 'ALLOWED_USER_IDS is required')
-    .transform((s) => s.split(',').filter(Boolean))
+    .transform((s) =>
+      s
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    )
     .refine((arr) => arr.length > 0, 'ALLOWED_USER_IDS must contain at least one valid ID'),
   SERVER_NAME: z
     .string()
@@ -51,5 +56,5 @@ export function parseConfig(env: Record<string, string | undefined>): ChannelCon
 
 export function safeErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  return msg.replace(/x(?:ox[bp]|app)-[A-Za-z0-9-]+/g, '[REDACTED]')
+  return msg.replace(/x(?:ox[a-z]|app)-[\w-]+/g, '[REDACTED]')
 }

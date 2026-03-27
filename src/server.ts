@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -7,7 +8,7 @@ import { parseConfig, safeErrorMessage } from './config.ts'
 import { formatPermissionRequest, parsePermissionReply } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig } from './types.ts'
+import type { ChannelConfig, PermissionRequest } from './types.ts'
 
 export function createServer(config: ChannelConfig): Server {
   const server = new Server(
@@ -93,44 +94,54 @@ if (import.meta.main) {
   // Create Slack client (does not start yet — returns { socketMode, web }).
   // Must be created after server.connect() so the onMessage callback can call
   // server.notification(), which requires a ready transport.
+  // Serialize message processing — concurrent async callbacks could interleave
+  // ThreadTracker mutations across await points without this queue.
+  let messageQueue = Promise.resolve()
+
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
     config.slackBotToken,
     { channelId: config.channelId, allowedUserIds: config.allowedUserIds },
-    async (msg) => {
-      // Permission verdict check — MUST run before channel forwarding.
-      // A message matching yes/no {id} is consumed here as a verdict and is
-      // NOT forwarded as a notifications/claude/channel event.
-      // This mutual exclusivity is enforced by the early return below.
-      //
-      // Security note: verdict parsing runs only for messages that have already
-      // passed the ALLOWED_USER_IDS check inside createSlackClient, so a
-      // non-allowed user cannot inject a verdict.
-      const verdict = parsePermissionReply(msg.text)
-      if (verdict) {
-        await server.notification({
-          method: 'notifications/claude/channel/permission',
-          params: verdict as unknown as Record<string, unknown>,
-        })
-        return // do not forward as channel notification
-      }
+    (msg) => {
+      messageQueue = messageQueue.then(async () => {
+        try {
+          // Permission verdict check — MUST run before channel forwarding.
+          // A message matching yes/no {id} is consumed here as a verdict and is
+          // NOT forwarded as a notifications/claude/channel event.
+          // This mutual exclusivity is enforced by the early return below.
+          //
+          // Security note: verdict parsing runs only for messages that have already
+          // passed the ALLOWED_USER_IDS check inside createSlackClient, so a
+          // non-allowed user cannot inject a verdict.
+          const verdict = parsePermissionReply(msg.text)
+          if (verdict) {
+            await server.notification({
+              method: 'notifications/claude/channel/permission',
+              params: verdict as unknown as Record<string, unknown>,
+            })
+            return // do not forward as channel notification
+          }
 
-      // Classify the message relative to the active thread
-      const classification = tracker.classifyMessage(msg.thread_ts)
-      if (classification === 'new_input') {
-        // Top-level message or reply to a stale/unknown thread:
-        // abandon the prior thread and treat this as a fresh command
-        tracker.abandon()
-      }
+          // Classify the message relative to the active thread
+          const classification = tracker.classifyMessage(msg.thread_ts)
+          if (classification === 'new_input') {
+            // Top-level message or reply to a stale/unknown thread:
+            // abandon the prior thread and treat this as a fresh command
+            tracker.abandon()
+          }
 
-      // Forward to Claude as a channel notification.
-      // params shape: { content: string, meta: Record<string, string> }
-      // Meta keys use underscores only — hyphens are silently dropped by the
-      // Channel protocol.
-      const params = formatInboundNotification(msg)
-      await server.notification({
-        method: 'notifications/claude/channel',
-        params: params as unknown as Record<string, unknown>,
+          // Forward to Claude as a channel notification.
+          // params shape: { content: string, meta: Record<string, string> }
+          // Meta keys use underscores only — hyphens are silently dropped by the
+          // Channel protocol.
+          const params = formatInboundNotification(msg)
+          await server.notification({
+            method: 'notifications/claude/channel',
+            params: params as unknown as Record<string, unknown>,
+          })
+        } catch (err) {
+          console.error('[server] onMessage failed:', safeErrorMessage(err))
+        }
       })
     },
   )
@@ -141,7 +152,7 @@ if (import.meta.main) {
   const PermissionRequestSchema = z.object({
     method: z.literal('notifications/claude/channel/permission_request'),
     params: z.object({
-      request_id: z.string(),
+      request_id: z.string().regex(/^[a-km-z]{5}$/),
       tool_name: z.string(),
       description: z.string(),
       input_preview: z.string().optional().default(''),
@@ -149,7 +160,7 @@ if (import.meta.main) {
   })
 
   server.setNotificationHandler(PermissionRequestSchema, async ({ params }) => {
-    const text = formatPermissionRequest(params)
+    const text = formatPermissionRequest(params as PermissionRequest)
     // Post the permission prompt IN the active thread so it appears inline
     // with the command that triggered it. Falls back to top-level if there
     // is no active thread (e.g. fire-and-forget command with no question phase).
