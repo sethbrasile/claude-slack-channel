@@ -16,3 +16,4 @@ jobs:
       - run: bunx tsc --noEmit
       - run: bunx biome check .
       - run: bun test --coverage
+      - run: bun audit
