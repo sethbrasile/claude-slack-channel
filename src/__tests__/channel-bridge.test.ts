@@ -47,4 +47,13 @@ describe('formatInboundNotification', () => {
     const hyphenKeys = keys.filter((k) => k.includes('-'))
     expect(hyphenKeys).toHaveLength(0)
   })
+
+  it('handles empty text — content is empty string', () => {
+    const emptyTextMessage: SlackMessage = {
+      ...baseMessage,
+      text: '',
+    }
+    const result: ChannelNotificationParams = formatInboundNotification(emptyTextMessage)
+    expect(result.content).toBe('')
+  })
 })

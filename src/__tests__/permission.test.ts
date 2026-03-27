@@ -93,4 +93,27 @@ describe('formatPermissionRequest', () => {
     expect(result).not.toContain('<!channel>')
     expect(result).not.toContain('<!here>')
   })
+
+  it('strips <!everyone> broadcast mention in description', () => {
+    const result = formatPermissionRequest({
+      request_id: 'abcde',
+      tool_name: 'notify',
+      description: '<!everyone> ping all',
+      input_preview: '',
+    })
+    expect(result).not.toContain('<!everyone>')
+  })
+
+  it('omits code block when input_preview is absent (empty string)', () => {
+    const result = formatPermissionRequest({
+      request_id: 'abcde',
+      tool_name: 'Read',
+      description: 'Read a file',
+      input_preview: '',
+    })
+    expect(result).toContain('abcde')
+    expect(result).toContain('Read')
+    expect(result).toContain('Read a file')
+    expect(result).not.toContain('```')
+  })
 })

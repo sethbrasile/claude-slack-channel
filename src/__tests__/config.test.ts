@@ -97,6 +97,13 @@ describe('parseConfig', () => {
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
+
+    it('exits when ALLOWED_USER_IDS is whitespace only', () => {
+      expect(() => parseConfig({ ...VALID_ENV, ALLOWED_USER_IDS: '   ' })).toThrow(
+        'process.exit called',
+      )
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
   })
 })
 
@@ -109,6 +116,16 @@ describe('safeErrorMessage', () => {
 
   it('masks xapp- tokens', () => {
     expect(safeErrorMessage(new Error('xapp-abc-123'))).toContain('[REDACTED]')
+  })
+
+  it('masks xoxp- tokens (user OAuth tokens)', () => {
+    expect(safeErrorMessage(new Error('token xoxp-abc-123'))).toContain('[REDACTED]')
+    expect(safeErrorMessage(new Error('token xoxp-abc-123'))).not.toContain('xoxp-')
+  })
+
+  it('masks xoxa- tokens (app-level tokens)', () => {
+    expect(safeErrorMessage(new Error('token xoxa-abc-123'))).toContain('[REDACTED]')
+    expect(safeErrorMessage(new Error('token xoxa-abc-123'))).not.toContain('xoxa-')
   })
 
   it('handles non-Error values', () => {

@@ -53,4 +53,9 @@ describe('ThreadTracker', () => {
     const result: MessageClassification = tracker.classifyMessage('1234567890.000100')
     expect(result).toBe('new_input')
   })
+
+  it("classifyMessage('') returns new_input — empty string treated as top-level", () => {
+    const result: MessageClassification = tracker.classifyMessage('')
+    expect(result).toBe('new_input')
+  })
 })
