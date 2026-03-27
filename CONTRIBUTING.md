@@ -28,7 +28,7 @@ bun test              # run the full unit test suite
 bun test --coverage   # run with coverage report
 ```
 
-The test suite currently has 48+ tests. All tests must pass before opening a PR. CI runs the same command on every push and pull request.
+The test suite currently has 60+ tests. All tests must pass before opening a PR. CI runs the same command on every push and pull request.
 
 ---
 

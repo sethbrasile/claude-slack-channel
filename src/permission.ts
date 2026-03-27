@@ -2,7 +2,9 @@ import type { PermissionRequest, PermissionVerdict } from './types.ts'
 
 // Protocol spec: request_id is 5 lowercase letters from a-z excluding 'l'
 // (to avoid 1/I/l confusion on mobile screens)
-const PERMISSION_REPLY_RE = /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i
+export const PERMISSION_ID_PATTERN = '[a-km-z]{5}'
+
+const PERMISSION_REPLY_RE = new RegExp(`^\\s*(y|yes|n|no)\\s+(${PERMISSION_ID_PATTERN})\\s*$`, 'i')
 
 export function parsePermissionReply(text: string): PermissionVerdict | null {
   const match = text.match(PERMISSION_REPLY_RE)

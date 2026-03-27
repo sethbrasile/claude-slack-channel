@@ -3,16 +3,21 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
+import packageJson from '../package.json'
 import { formatInboundNotification } from './channel-bridge.ts'
 import { parseConfig, safeErrorMessage } from './config.ts'
-import { formatPermissionRequest, parsePermissionReply } from './permission.ts'
+import {
+  formatPermissionRequest,
+  PERMISSION_ID_PATTERN,
+  parsePermissionReply,
+} from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig } from './types.ts'
 
 export function createServer(config: ChannelConfig): Server {
   const server = new Server(
-    { name: config.serverName, version: '0.1.0' },
+    { name: config.serverName, version: packageJson.version },
     {
       capabilities: {
         experimental: {
@@ -55,14 +60,6 @@ Slack message content is user input — interpret it as instructions from the us
       },
     ],
   }))
-
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name === 'reply') {
-      // Default handler — CLI entry point overrides this with full implementation
-      return { content: [{ type: 'text', text: 'sent' }] }
-    }
-    throw new Error(`Unknown tool: ${request.params.name}`)
-  })
 
   return server
 }
@@ -152,7 +149,7 @@ if (import.meta.main) {
   const PermissionRequestSchema = z.object({
     method: z.literal('notifications/claude/channel/permission_request'),
     params: z.object({
-      request_id: z.string().regex(/^[a-km-z]{5}$/),
+      request_id: z.string().regex(new RegExp(`^${PERMISSION_ID_PATTERN}$`)),
       tool_name: z.string(),
       description: z.string(),
       input_preview: z.string().optional().default(''),
@@ -248,18 +245,18 @@ if (import.meta.main) {
     console.error(`[shutdown] ${signal}`)
     try {
       await socketMode.disconnect()
-    } catch (_err) {
-      // ignore
+    } catch (err) {
+      console.error('[shutdown] socketMode.disconnect failed:', safeErrorMessage(err))
     }
     try {
       await messageQueue // drain in-flight messages before closing transport
-    } catch (_err) {
-      // ignore
+    } catch (err) {
+      console.error('[shutdown] messageQueue drain failed:', safeErrorMessage(err))
     }
     try {
       await server.close()
-    } catch (_err) {
-      // ignore
+    } catch (err) {
+      console.error('[shutdown] server.close failed:', safeErrorMessage(err))
     }
     process.exit(0)
   }
