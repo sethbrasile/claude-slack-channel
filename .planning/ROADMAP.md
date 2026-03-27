@@ -68,20 +68,20 @@ Plans:
 - [ ] 03-02-PLAN.md — GitHub Actions CI workflow (push/PR) and release workflow (v* tags, npm publish with provenance)
 
 ### Phase 4: Package + Documentation
-**Goal**: The package is installable via npx, Slack app setup is reproducible from a manifest file, and all community-facing documentation is present so external contributors and operators can use the server without asking questions.
+**Goal**: The package is installable via bunx, Slack app setup is reproducible from a manifest file, and all community-facing documentation is present so external contributors and operators can use the server without asking questions.
 **Depends on**: Phase 3
 **Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08, DOCS-09, DOCS-10
 **Success Criteria** (what must be TRUE):
-  1. `package.json` has `bin`, `files`, `engines`, and publish scripts configured so `npx claude-slack-channel` runs the server
+  1. `package.json` has `bin`, `files`, `engines`, and `publishConfig` configured so `bunx claude-slack-channel` runs the server
   2. `slack-app-manifest.yaml` exists and contains all required OAuth scopes and Socket Mode settings needed to create a working Slack app
   3. README covers quick start, all env vars, threading behavior, permission relay, and includes a comparison table with the community implementation
   4. `examples/` contains at least one walkthrough (basic setup) that a new operator can follow end-to-end
   5. MIT LICENSE, CHANGELOG.md, CONTRIBUTING.md, and a bug report issue template are all present in the repo
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: package.json + manifest — bin/files/engines config, slack-app-manifest.yaml, .env.example, MIT LICENSE, DOCS-10, DOCS-02, DOCS-03, DOCS-09
-- [ ] 04-02: Community docs — README, CONTRIBUTING.md, CHANGELOG.md, examples/, issue template, DOCS-01, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08
+- [ ] 04-01-PLAN.md — Package config: package.json publishConfig, slack-app-manifest.yaml, .env.example, MIT LICENSE (DOCS-10, DOCS-02, DOCS-03, DOCS-09)
+- [ ] 04-02-PLAN.md — Community docs: README, CONTRIBUTING.md, CHANGELOG.md, examples/, issue template (DOCS-01, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08)
 
 ## Progress
 
