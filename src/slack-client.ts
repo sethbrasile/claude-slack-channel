@@ -33,6 +33,16 @@ export interface SlackMessage {
 
 export type MessageHandler = (message: SlackMessage) => void | Promise<void>
 
+export interface InteractiveAction {
+  action_id: string
+  user: string
+  channel: string
+  message_ts: string
+  thread_ts?: string
+}
+
+export type InteractiveHandler = (action: InteractiveAction) => void | Promise<void>
+
 // ============================================================
 // Pure filter function — injectable for testability
 // ============================================================
@@ -123,6 +133,7 @@ export function createSlackClient(
   botToken: string,
   filter: MessageFilter,
   onMessage: MessageHandler,
+  onInteractive?: InteractiveHandler,
 ): { socketMode: SocketModeClient; web: WebClient } {
   const logger = createStderrLogger()
 
@@ -172,6 +183,41 @@ export function createSlackClient(
       await onMessage(msg)
     },
   )
+
+  if (onInteractive) {
+    socketMode.on(
+      'interactive',
+      async ({ body, ack }: { body: Record<string, unknown>; ack: () => Promise<void> }) => {
+        try {
+          await ack()
+        } catch (err) {
+          console.error('[slack-client] interactive ack failed:', safeErrorMessage(err))
+          return
+        }
+
+        const actions = body.actions as Array<{ action_id?: string }> | undefined
+        const user = body.user as { id?: string } | undefined
+        const channel = body.channel as { id?: string } | undefined
+        const message = body.message as { ts?: string; thread_ts?: string } | undefined
+
+        if (!actions?.[0]?.action_id || !user?.id || !channel?.id || !message?.ts) return
+        if (!filter.allowedUserIds.includes(user.id)) {
+          console.error(
+            `[slack-client] interactive action rejected: user ${user.id} not in allowlist`,
+          )
+          return
+        }
+
+        await onInteractive({
+          action_id: actions[0].action_id,
+          user: user.id,
+          channel: channel.id,
+          message_ts: message.ts,
+          ...(message.thread_ts ? { thread_ts: message.thread_ts } : {}),
+        })
+      },
+    )
+  }
 
   return { socketMode, web }
 }

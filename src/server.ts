@@ -7,7 +7,13 @@ import { z } from 'zod'
 import packageJson from '../package.json'
 import { formatInboundNotification } from './channel-bridge.ts'
 import { parseConfig, safeErrorMessage } from './config.ts'
-import { formatPermissionRequest, PERMISSION_ID_RE, parsePermissionReply } from './permission.ts'
+import {
+  formatPermissionBlocks,
+  formatPermissionResult,
+  PERMISSION_ID_RE,
+  parseButtonAction,
+  parsePermissionReply,
+} from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig } from './types.ts'
@@ -162,6 +168,15 @@ if (import.meta.main) {
   // ThreadTracker mutations across await points without this queue.
   let messageQueue = Promise.resolve()
 
+  // Track pending permission requests so we can update the Slack message
+  // with the result after a button click. Keyed by request_id.
+  const pendingPermissions = new Map<
+    string,
+    {
+      params: { request_id: string; tool_name: string; description: string; input_preview: string }
+    }
+  >()
+
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
     config.slackBotToken,
@@ -179,6 +194,7 @@ if (import.meta.main) {
           // non-allowed user cannot inject a verdict.
           const verdict = parsePermissionReply(msg.text)
           if (verdict) {
+            pendingPermissions.delete(verdict.request_id)
             await server.notification({
               method: 'notifications/claude/channel/permission',
               // SDK requires Record<string, unknown>; PermissionVerdict lacks an index signature so
@@ -212,6 +228,43 @@ if (import.meta.main) {
         }
       })
     },
+    // Interactive button handler (Approve/Deny clicks on permission requests).
+    // Auth check (ALLOWED_USER_IDS) is enforced inside createSlackClient before
+    // this callback is invoked.
+    async (action) => {
+      try {
+        const verdict = parseButtonAction(action.action_id)
+        if (!verdict) return
+
+        const pending = pendingPermissions.get(verdict.request_id)
+        pendingPermissions.delete(verdict.request_id)
+
+        // Forward the verdict to Claude Code
+        await server.notification({
+          method: 'notifications/claude/channel/permission',
+          params: verdict as unknown as Record<string, unknown>,
+        })
+
+        // Update the Slack message to replace buttons with result
+        if (pending) {
+          const approved = verdict.behavior === 'allow'
+          const updated = formatPermissionResult(pending.params, action.user, approved)
+          try {
+            await web.chat.update({
+              channel: action.channel,
+              ts: action.message_ts,
+              text: updated.text,
+              // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+              blocks: updated.blocks as any,
+            })
+          } catch (err) {
+            console.error('[permission] chat.update failed:', safeErrorMessage(err))
+          }
+        }
+      } catch (err) {
+        console.error('[server] onInteractive failed:', safeErrorMessage(err))
+      }
+    },
   )
 
   // Permission request handler (Claude Code → server → Slack).
@@ -228,7 +281,9 @@ if (import.meta.main) {
   })
 
   server.setNotificationHandler(PermissionRequestSchema, async ({ params }) => {
-    const text = formatPermissionRequest(params)
+    const { text, blocks } = formatPermissionBlocks(params)
+    // Store the request so we can update the message after a button click
+    pendingPermissions.set(params.request_id, { params })
     // Post the permission prompt IN the active thread so it appears inline
     // with the command that triggered it. Falls back to top-level if there
     // is no active thread (e.g. fire-and-forget command with no question phase).
@@ -240,6 +295,8 @@ if (import.meta.main) {
       const result = await web.chat.postMessage({
         channel: config.channelId,
         text,
+        // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+        blocks: blocks as any,
         thread_ts: tracker.activeThreadTs ?? undefined,
         unfurl_links: false,
         unfurl_media: false,

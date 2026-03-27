@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { formatPermissionRequest, parsePermissionReply } from '../permission.ts'
+import {
+  formatPermissionBlocks,
+  formatPermissionRequest,
+  formatPermissionResult,
+  parseButtonAction,
+  parsePermissionReply,
+} from '../permission.ts'
 
 describe('parsePermissionReply', () => {
   it("'yes abcde' returns allow verdict", () => {
@@ -115,5 +121,114 @@ describe('formatPermissionRequest', () => {
     expect(result).toContain('Read')
     expect(result).toContain('Read a file')
     expect(result).not.toContain('```')
+  })
+})
+
+describe('formatPermissionBlocks', () => {
+  const req = {
+    request_id: 'abcde',
+    tool_name: 'Bash',
+    description: 'Run shell command',
+    input_preview: 'ls -la',
+  }
+
+  it('returns plain text fallback', () => {
+    const { text } = formatPermissionBlocks(req)
+    expect(text).toContain('abcde')
+    expect(text).toContain('Bash')
+  })
+
+  it('returns section, actions, and context blocks', () => {
+    const { blocks } = formatPermissionBlocks(req)
+    expect(blocks).toHaveLength(3)
+    expect(blocks[0]).toHaveProperty('type', 'section')
+    expect(blocks[1]).toHaveProperty('type', 'actions')
+    expect(blocks[2]).toHaveProperty('type', 'context')
+  })
+
+  it('includes Approve and Deny buttons with correct action_ids', () => {
+    const { blocks } = formatPermissionBlocks(req)
+    const actions = blocks[1] as { elements: { action_id: string; style: string }[] }
+    expect(actions.elements).toHaveLength(2)
+    const approve = actions.elements[0]!
+    const deny = actions.elements[1]!
+    expect(approve.action_id).toBe('permission_approve_abcde')
+    expect(approve.style).toBe('primary')
+    expect(deny.action_id).toBe('permission_deny_abcde')
+    expect(deny.style).toBe('danger')
+  })
+
+  it('includes text fallback in context block', () => {
+    const { blocks } = formatPermissionBlocks(req)
+    const context = blocks[2] as { elements: { text: string }[] }
+    const el = context.elements[0]!
+    expect(el.text).toContain('yes abcde')
+    expect(el.text).toContain('no abcde')
+  })
+
+  it('omits code block when input_preview is empty', () => {
+    const { blocks } = formatPermissionBlocks({ ...req, input_preview: '' })
+    const section = blocks[0] as { text: { text: string } }
+    expect(section.text.text).not.toContain('```')
+  })
+})
+
+describe('formatPermissionResult', () => {
+  const req = {
+    request_id: 'abcde',
+    tool_name: 'Bash',
+    description: 'Run shell command',
+    input_preview: '',
+  }
+
+  it('shows approved result with user mention', () => {
+    const { text, blocks } = formatPermissionResult(req, 'U12345', true)
+    expect(text).toContain(':white_check_mark:')
+    expect(text).toContain('Approved')
+    expect(text).toContain('<@U12345>')
+    expect(blocks).toHaveLength(2) // section + result, no actions block
+  })
+
+  it('shows denied result with user mention', () => {
+    const { text, blocks } = formatPermissionResult(req, 'U12345', false)
+    expect(text).toContain(':x:')
+    expect(text).toContain('Denied')
+    expect(text).toContain('<@U12345>')
+    expect(blocks).toHaveLength(2)
+  })
+
+  it('does not include action buttons', () => {
+    const { blocks } = formatPermissionResult(req, 'U12345', true)
+    const types = blocks.map((b) => (b as { type: string }).type)
+    expect(types).not.toContain('actions')
+  })
+})
+
+describe('parseButtonAction', () => {
+  it('parses approve action into allow verdict', () => {
+    expect(parseButtonAction('permission_approve_abcde')).toEqual({
+      request_id: 'abcde',
+      behavior: 'allow',
+    })
+  })
+
+  it('parses deny action into deny verdict', () => {
+    expect(parseButtonAction('permission_deny_xyzwv')).toEqual({
+      request_id: 'xyzwv',
+      behavior: 'deny',
+    })
+  })
+
+  it('returns null for unrelated action_id', () => {
+    expect(parseButtonAction('some_other_action')).toBeNull()
+  })
+
+  it('returns null for action with l in request_id', () => {
+    expect(parseButtonAction('permission_approve_abcle')).toBeNull()
+  })
+
+  it('returns null for action with wrong id length', () => {
+    expect(parseButtonAction('permission_approve_abcd')).toBeNull()
+    expect(parseButtonAction('permission_approve_abcdef')).toBeNull()
   })
 })
