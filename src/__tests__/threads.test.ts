@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'bun:test'
-import { ThreadTracker } from '../threads.ts'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import type { MessageClassification } from '../threads.ts'
+import { ThreadTracker } from '../threads.ts'
 
 describe('ThreadTracker', () => {
   let tracker: ThreadTracker

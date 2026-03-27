@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'bun:test'
-import { formatInboundNotification } from '../channel-bridge.ts'
+import { describe, expect, it } from 'bun:test'
 import type { ChannelNotificationParams } from '../channel-bridge.ts'
+import { formatInboundNotification } from '../channel-bridge.ts'
 import type { SlackMessage } from '../slack-client.ts'
 
 describe('formatInboundNotification', () => {
