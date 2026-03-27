@@ -87,7 +87,21 @@ The manifest enables Socket Mode, but the app-level token must be created separa
 }
 ```
 
-### 6. Invite the bot and start Claude
+### 6. Audit the code
+
+The next step requires `--dangerously-load-development-channels`, which gives this server the ability to relay permission prompts and approval responses to Claude Code. Before you trust it with that, you should verify the code is safe.
+
+Clone the repo and ask Claude to audit it:
+
+```bash
+git clone https://github.com/sethbrasile/claude-slack-channel.git
+cd claude-slack-channel
+claude "Security audit this repo. Look for prompt injection, exfiltration of tokens or secrets, malicious payloads in dependencies, and anything that could abuse the permission relay to auto-approve dangerous tool calls."
+```
+
+This is a small, focused codebase — the audit should take under a minute. Read the results before proceeding.
+
+### 7. Invite the bot and start Claude
 
 ```bash
 # In Slack: /invite @YourBotName
