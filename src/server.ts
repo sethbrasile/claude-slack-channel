@@ -181,8 +181,9 @@ if (import.meta.main) {
           if (verdict) {
             await server.notification({
               method: 'notifications/claude/channel/permission',
-              // SDK requires params: Record<string, unknown>; PermissionVerdict is structurally compatible
-              params: verdict as Record<string, unknown>,
+              // SDK requires Record<string, unknown>; PermissionVerdict lacks an index signature so
+              // TypeScript needs the intermediate unknown cast to allow the conversion.
+              params: verdict as unknown as Record<string, unknown>,
             })
             return // do not forward as channel notification
           }
@@ -202,6 +203,8 @@ if (import.meta.main) {
           const params = formatInboundNotification(msg)
           await server.notification({
             method: 'notifications/claude/channel',
+            // SDK requires Record<string, unknown>; ChannelNotificationParams lacks an index signature so
+            // TypeScript needs the intermediate unknown cast to allow the conversion.
             params: params as unknown as Record<string, unknown>,
           })
         } catch (err) {
