@@ -57,7 +57,9 @@
       "name": "Test Surface Mismatch",
       "firstSeen": "2026-03-27",
       "reviews": ["2026-03-27-deep-review.md"],
-      "status": "fix-in-progress"
+      "status": "resolved",
+      "resolvedBy": "Phase 5 — Testability & Dead Code Cleanup",
+      "resolvedDate": "2026-03-27"
     }
   }
 }
