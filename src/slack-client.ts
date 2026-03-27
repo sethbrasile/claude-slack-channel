@@ -58,21 +58,6 @@ export function shouldProcessMessage(event: SlackEvent, filter: MessageFilter): 
 }
 
 // ============================================================
-// Deduplication — injectable seen Set for testability
-// ============================================================
-
-/**
- * Returns true if ts has been seen before within the provided Set.
- * TTL expiry is handled in createSlackClient via a module-level Map.
- * This pure function stays simple for unit testing.
- */
-export function isDuplicate(ts: string, seen: Set<string>): boolean {
-  if (seen.has(ts)) return true
-  seen.add(ts)
-  return false
-}
-
-// ============================================================
 // Stderr logger — prevents any Slack SDK output going to stdout
 // ============================================================
 

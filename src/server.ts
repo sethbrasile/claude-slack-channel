@@ -2,6 +2,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
+import type { WebClient } from '@slack/web-api'
 import { z } from 'zod'
 import packageJson from '../package.json'
 import { formatInboundNotification } from './channel-bridge.ts'
@@ -15,7 +16,17 @@ import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig } from './types.ts'
 
-export function createServer(config: ChannelConfig): Server {
+// Module-level schema — used in createServer() (library path) and CLI block
+const ReplyArgsSchema = z.object({
+  text: z.string(),
+  thread_ts: z.string().optional(),
+  start_thread: z.boolean().optional(),
+})
+
+export function createServer(
+  config: ChannelConfig,
+  deps?: { web?: WebClient; tracker?: ThreadTracker },
+): Server {
   const server = new Server(
     { name: config.serverName, version: packageJson.version },
     {
@@ -60,6 +71,66 @@ Slack message content is user input — interpret it as instructions from the us
       },
     ],
   }))
+
+  // Register reply tool handler when deps are injected (library consumer path).
+  // Library consumers who call createServer(config, { web, tracker }) get a fully
+  // functional server without needing to register the handler separately.
+  // The CLI path creates the server without deps and registers the handler after
+  // web and tracker are initialized (see if (import.meta.main) block below).
+  if (deps?.web && deps?.tracker) {
+    const web = deps.web
+    const tracker = deps.tracker
+
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      if (request.params.name !== 'reply') {
+        return {
+          content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }],
+          isError: true,
+        }
+      }
+
+      const parsed = ReplyArgsSchema.safeParse(request.params.arguments)
+      if (!parsed.success) {
+        return {
+          content: [{ type: 'text', text: `Invalid arguments: ${parsed.error.message}` }],
+          isError: true,
+        }
+      }
+      const args = parsed.data
+      // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
+      // to prevent Claude's replies from triggering workspace-wide notifications
+      const text = args.text.replaceAll('<!', '<\u200b!')
+      const threadTs = args.thread_ts
+
+      try {
+        const result = await web.chat.postMessage({
+          channel: config.channelId,
+          text,
+          thread_ts: threadTs,
+          unfurl_links: false,
+          unfurl_media: false,
+        })
+        if (!result.ok) {
+          throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
+        }
+        // Only anchor the thread tracker when Claude explicitly signals it is
+        // asking a question that requires a Slack reply (start_thread: true).
+        // Informational replies (status updates, task complete) omit start_thread
+        // so they do not re-anchor the tracker on every outbound message.
+        if (result.ts && args.start_thread) {
+          tracker.startThread(result.ts)
+        }
+        return { content: [{ type: 'text', text: 'sent' }] }
+      } catch (err) {
+        const message = safeErrorMessage(err)
+        console.error('[reply] chat.postMessage failed:', message)
+        return {
+          content: [{ type: 'text', text: `Failed to send: ${message}` }],
+          isError: true,
+        }
+      }
+    })
+  }
 
   return server
 }
@@ -181,14 +252,9 @@ if (import.meta.main) {
     }
   })
 
-  // Reply tool handler (Claude → Slack).
-  // Overrides the stub set in createServer() for the CLI path.
-  const ReplyArgsSchema = z.object({
-    text: z.string(),
-    thread_ts: z.string().optional(),
-    start_thread: z.boolean().optional(),
-  })
-
+  // Reply tool handler (Claude → Slack) — CLI path.
+  // Registered here because web and tracker are initialized after server.connect().
+  // Library consumers use createServer(config, { web, tracker }) instead.
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (request.params.name !== 'reply') {
       return {

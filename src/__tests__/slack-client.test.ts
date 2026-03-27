@@ -1,5 +1,5 @@
 import { describe, expect, it, spyOn } from 'bun:test'
-import { createStderrLogger, isDuplicate, shouldProcessMessage } from '../slack-client.ts'
+import { createStderrLogger, shouldProcessMessage } from '../slack-client.ts'
 
 const FILTER = {
   channelId: 'C123',
@@ -37,33 +37,6 @@ describe('shouldProcessMessage', () => {
     expect(
       shouldProcessMessage({ channel: 'C123', user: 'U123', subtype: 'bot_message' }, FILTER),
     ).toBe(false)
-  })
-})
-
-describe('isDuplicate', () => {
-  it('returns false on first call with a ts', () => {
-    const seen = new Set<string>()
-    expect(isDuplicate('ts1', seen)).toBe(false)
-  })
-
-  it('returns true on second call with the same ts', () => {
-    const seen = new Set<string>()
-    isDuplicate('ts1', seen)
-    expect(isDuplicate('ts1', seen)).toBe(true)
-  })
-
-  it('returns false for a different ts value', () => {
-    const seen = new Set<string>()
-    isDuplicate('ts1', seen)
-    expect(isDuplicate('ts2', seen)).toBe(false)
-  })
-
-  it('returns false after ts is removed from seen (simulates TTL expiry)', () => {
-    const seen = new Set<string>()
-    isDuplicate('ts1', seen)
-    // Simulate TTL expiry: caller removes expired entry from the Set
-    seen.delete('ts1')
-    expect(isDuplicate('ts1', seen)).toBe(false)
   })
 })
 
