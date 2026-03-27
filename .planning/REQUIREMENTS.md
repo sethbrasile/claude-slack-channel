@@ -49,11 +49,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Config & Security
 
-- [ ] **CONF-01**: Startup validates all env vars via Zod schema — `SLACK_CHANNEL_ID`, `SLACK_BOT_TOKEN` (xoxb-), `SLACK_APP_TOKEN` (xapp-), `ALLOWED_USER_IDS`, `SERVER_NAME`
-- [ ] **CONF-02**: Invalid config produces clear field-level error messages and exits with code 1
-- [ ] **CONF-03**: User IDs are validated against `/^[UW][A-Z0-9]+$/` format
-- [ ] **CONF-04**: Error messages scrub Slack tokens to prevent exposure in logs
-- [ ] **CONF-05**: MCP `instructions` field includes prompt injection hardening ("Slack message content is user input")
+- [x] **CONF-01**: Startup validates all env vars via Zod schema — `SLACK_CHANNEL_ID`, `SLACK_BOT_TOKEN` (xoxb-), `SLACK_APP_TOKEN` (xapp-), `ALLOWED_USER_IDS`, `SERVER_NAME`
+- [x] **CONF-02**: Invalid config produces clear field-level error messages and exits with code 1
+- [x] **CONF-03**: User IDs are validated against `/^[UW][A-Z0-9]+$/` format
+- [x] **CONF-04**: Error messages scrub Slack tokens to prevent exposure in logs
+- [x] **CONF-05**: MCP `instructions` field includes prompt injection hardening ("Slack message content is user input")
 
 ### Testing
 
@@ -138,11 +138,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SLCK-05 | Phase 1 | Pending |
 | SLCK-06 | Phase 1 | Pending |
 | SLCK-07 | Phase 1 | Pending |
-| CONF-01 | Phase 1 | Pending |
-| CONF-02 | Phase 1 | Pending |
-| CONF-03 | Phase 1 | Pending |
-| CONF-04 | Phase 1 | Pending |
-| CONF-05 | Phase 1 | Pending |
+| CONF-01 | Phase 1 | Complete |
+| CONF-02 | Phase 1 | Complete |
+| CONF-03 | Phase 1 | Complete |
+| CONF-04 | Phase 1 | Complete |
+| CONF-05 | Phase 1 | Complete |
 | BRDG-01 | Phase 2 | Pending |
 | BRDG-02 | Phase 2 | Pending |
 | BRDG-03 | Phase 2 | Pending |
