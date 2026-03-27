@@ -29,8 +29,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Channel Bridge
 
-- [ ] **BRDG-01**: Inbound Slack messages are formatted as `notifications/claude/channel` with content, source, and meta fields
-- [ ] **BRDG-02**: Meta keys use underscores only (hyphens silently dropped by protocol)
+- [x] **BRDG-01**: Inbound Slack messages are formatted as `notifications/claude/channel` with content, source, and meta fields
+- [x] **BRDG-02**: Meta keys use underscores only (hyphens silently dropped by protocol)
 - [ ] **BRDG-03**: Outbound `reply` tool posts messages to Slack and returns `{ content: [{ type: 'text', text: 'sent' }] }`
 
 ### Permission Relay
@@ -43,9 +43,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Thread Management
 
-- [ ] **THRD-01**: ThreadTracker classifies incoming messages as `thread_reply` (reply to active thread) or `new_input` (top-level or stale thread)
-- [ ] **THRD-02**: Top-level messages abandon the active thread and start a new command context
-- [ ] **THRD-03**: `start_thread: true` on outbound replies anchors the thread tracker to the new message
+- [x] **THRD-01**: ThreadTracker classifies incoming messages as `thread_reply` (reply to active thread) or `new_input` (top-level or stale thread)
+- [x] **THRD-02**: Top-level messages abandon the active thread and start a new command context
+- [x] **THRD-03**: `start_thread: true` on outbound replies anchors the thread tracker to the new message
 
 ### Config & Security
 
@@ -143,17 +143,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-03 | Phase 1 | Complete |
 | CONF-04 | Phase 1 | Complete |
 | CONF-05 | Phase 1 | Complete |
-| BRDG-01 | Phase 2 | Pending |
-| BRDG-02 | Phase 2 | Pending |
+| BRDG-01 | Phase 2 | Complete |
+| BRDG-02 | Phase 2 | Complete |
 | BRDG-03 | Phase 2 | Pending |
 | PERM-01 | Phase 2 | Pending |
 | PERM-02 | Phase 2 | Pending |
 | PERM-03 | Phase 2 | Pending |
 | PERM-04 | Phase 2 | Pending |
 | PERM-05 | Phase 2 | Pending |
-| THRD-01 | Phase 2 | Pending |
-| THRD-02 | Phase 2 | Pending |
-| THRD-03 | Phase 2 | Pending |
+| THRD-01 | Phase 2 | Complete |
+| THRD-02 | Phase 2 | Complete |
+| THRD-03 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
