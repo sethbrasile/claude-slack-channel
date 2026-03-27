@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A Slack message from an allowed user in the configured channel arrives as a `notifications/claude/channel` notification in Claude Code
   4. Messages from bots, wrong channels, or non-allowlisted users are silently dropped — no notification reaches Claude
   5. Sending SIGTERM or closing stdin causes the server to shut down cleanly without crashing or hanging
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Project scaffold — bun init, tsconfig, biome config, package.json, types.ts, config.ts with Zod validation
-- [ ] 01-02: MCP server entry + Slack client — server.ts wiring, startup ordering, error handlers, graceful shutdown, Socket Mode with filtering and dedup
+- [ ] 01-01-PLAN.md — Project scaffold: package.json, tsconfig, biome, types.ts, config.ts with Zod validation + config tests
+- [ ] 01-02-PLAN.md — MCP server + Slack client: capabilities, startup ordering, error handlers, graceful shutdown, Socket Mode filtering and dedup
 
 ### Phase 2: Message Flow + Permission Relay
 **Goal**: Claude receives properly-formatted channel notifications for every allowed inbound message, can reply to Slack via the `reply` tool, and operators can approve or deny Claude's tool calls from Slack without terminal access.
