@@ -134,7 +134,7 @@ export function createSlackClient(
   })
 
   socketMode.on(
-    'slack_event',
+    'message',
     async ({ event, ack }: { event: SlackEvent; ack: () => Promise<void> }) => {
       // Ack-first: Slack requires acknowledgment within 3 seconds.
       // Wrapped in own try/catch so ack failure doesn't block processing.
@@ -145,7 +145,6 @@ export function createSlackClient(
         return
       }
 
-      if (event.type !== 'message') return
       if (!shouldProcessMessage(event, filter)) return
 
       // TTL dedup: expire old entries, then check/add current ts
