@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - MCP server scaffold + Slack Socket Mode connection with all transport safety invariants (completed 2026-03-27)
 - [x] **Phase 2: Message Flow + Permission Relay** - Channel bridge, thread tracker, and the permission relay that defines the project (completed 2026-03-27)
-- [ ] **Phase 3: Testing + CI** - Full unit test coverage on all pure functions and GitHub Actions CI pipeline
+- [x] **Phase 3: Testing + CI** - Full unit test coverage on all pure functions and GitHub Actions CI pipeline (completed 2026-03-27)
 - [x] **Phase 4: Package + Documentation** - npm-publishable package, Slack app manifest, README, and community docs (completed 2026-03-27)
 
 ## Phase Details
@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-27 |
 | 2. Message Flow + Permission Relay | 2/2 | Complete    | 2026-03-27 |
-| 3. Testing + CI | 1/2 | In Progress|  |
+| 3. Testing + CI | 2/2 | Complete   | 2026-03-27 |
 | 4. Package + Documentation | 2/2 | Complete   | 2026-03-27 |
