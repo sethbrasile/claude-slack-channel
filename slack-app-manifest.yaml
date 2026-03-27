@@ -1,0 +1,40 @@
+# Slack App Manifest for claude-slack-channel
+#
+# Paste this manifest at https://api.slack.com/apps > "Create New App" > "From a manifest"
+# to create a preconfigured Slack app in seconds.
+#
+# NOTE: The app-level token (xapp-) requires the "connections:write" scope.
+# This scope is set separately when you enable Socket Mode in Slack app settings:
+#   App Settings > Socket Mode > Enable Socket Mode > Generate Token
+# The "connections:write" scope is NOT part of this manifest — it is granted
+# automatically when Socket Mode is enabled.
+
+_metadata:
+  major_version: 2
+  minor_version: 1
+
+display_information:
+  name: Claude Slack Channel
+  description: MCP bridge for Claude Code automation pipelines
+  background_color: "#1A1D21"
+
+features:
+  bot_user:
+    display_name: Claude
+    always_online: true
+
+oauth_config:
+  scopes:
+    bot:
+      - chat:write        # post messages as the bot
+      - channels:history  # receive message events from public channels
+      - groups:history    # receive message events from private channels
+
+settings:
+  event_subscriptions:
+    bot_events:
+      - message.channels  # public channel messages
+      - message.groups    # private channel messages
+  socket_mode_enabled: true
+  is_hosted: false
+  token_rotation_enabled: false
