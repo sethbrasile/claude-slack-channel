@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-27T03:08:55.133Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-27T05:22:56.115Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
   percent: 50
 ---
 
@@ -56,6 +56,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02-message-flow-permission-relay P02 | 5 | 2 tasks | 4 files |
 | Phase 03-testing-ci P01 | 8 | 2 tasks | 1 files |
 | Phase 03-testing-ci P02 | 1 | 2 tasks | 2 files |
+| Phase 04-package-documentation P01 | 2 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 03-testing-ci]: npm publish --provenance instead of bun publish — bun publish lacks --provenance flag for supply chain attestation
 - [Phase 03-testing-ci]: actions/setup-node@v4 with registry-url required for npm auth even in Bun projects — omitting causes npm ERR! need auth
 - [Phase 03-testing-ci]: Single CI job with sequential steps: typecheck first, then lint, then test — fail fast, no artifact-passing overhead
+- [Phase 04-package-documentation]: publishConfig.access public added to package.json as belt-and-suspenders alongside --access public CLI flag in release workflow
+- [Phase 04-package-documentation]: .gitignore !.env.example negation added — .env.* glob was too broad and blocked committing the operator-facing template
+- [Phase 04-package-documentation]: groups:history included in Slack manifest alongside channels:history for private channel support; connections:write documented as comment not manifest field
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T03:08:55.131Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-03-27T05:22:56.112Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
