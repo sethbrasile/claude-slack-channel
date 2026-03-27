@@ -26,6 +26,9 @@ features:
 oauth_config:
   scopes:
     bot:
+      # NOTE: DM channels (im: scope) are NOT supported by this server.
+      # SLACK_CHANNEL_ID must be a public channel (C...) or private channel (C...).
+      # Configuring a DM channel ID will result in silent message loss.
       - chat:write        # post messages as the bot
       - channels:history  # receive message events from public channels
       - groups:history    # receive message events from private channels
