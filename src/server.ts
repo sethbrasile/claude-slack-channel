@@ -9,7 +9,7 @@ import { formatInboundNotification } from './channel-bridge.ts'
 import { parseConfig, safeErrorMessage } from './config.ts'
 import {
   formatPermissionRequest,
-  PERMISSION_ID_PATTERN,
+  PERMISSION_ID_RE,
   parsePermissionReply,
 } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
@@ -220,7 +220,7 @@ if (import.meta.main) {
   const PermissionRequestSchema = z.object({
     method: z.literal('notifications/claude/channel/permission_request'),
     params: z.object({
-      request_id: z.string().regex(new RegExp(`^${PERMISSION_ID_PATTERN}$`)),
+      request_id: z.string().regex(PERMISSION_ID_RE),
       tool_name: z.string(),
       description: z.string(),
       input_preview: z.string().optional().default(''),

@@ -4,6 +4,11 @@ import type { PermissionRequest, PermissionVerdict } from './types.ts'
 // (to avoid 1/I/l confusion on mobile screens)
 export const PERMISSION_ID_PATTERN = '[a-km-z]{5}'
 
+// Pre-built anchored regex for validating a single permission request ID.
+// Exported so callers (server.ts) can use the constant directly instead of
+// constructing new RegExp at call time.
+export const PERMISSION_ID_RE = new RegExp(`^${PERMISSION_ID_PATTERN}$`)
+
 const PERMISSION_REPLY_RE = new RegExp(`^\\s*(y|yes|n|no)\\s+(${PERMISSION_ID_PATTERN})\\s*$`, 'i')
 
 export function parsePermissionReply(text: string): PermissionVerdict | null {
