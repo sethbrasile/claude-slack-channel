@@ -33,6 +33,11 @@ describe('parseConfig', () => {
     expect(config.serverName).toBe('my-slack')
   })
 
+  it('accepts SLACK_CHANNEL_ID with G prefix (private group)', () => {
+    const config = parseConfig({ ...VALID_ENV, SLACK_CHANNEL_ID: 'G0123456789' })
+    expect(config.channelId).toBe('G0123456789')
+  })
+
   describe('validation failures', () => {
     let exitSpy: ReturnType<typeof spyOn>
 
@@ -100,6 +105,13 @@ describe('parseConfig', () => {
 
     it('exits when ALLOWED_USER_IDS is whitespace only', () => {
       expect(() => parseConfig({ ...VALID_ENV, ALLOWED_USER_IDS: '   ' })).toThrow(
+        'process.exit called',
+      )
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+
+    it('exits when SLACK_CHANNEL_ID has invalid format (not C/G prefix)', () => {
+      expect(() => parseConfig({ ...VALID_ENV, SLACK_CHANNEL_ID: 'not-a-channel' })).toThrow(
         'process.exit called',
       )
       expect(exitSpy).toHaveBeenCalledWith(1)
