@@ -44,7 +44,7 @@ Claude can execute unattended automation pipelines with human-in-the-loop permis
 
 ## Context
 
-- **GitHub:** sethbrasile/claude-slack-channel (personal account)
+- **GitHub:** sethbrasile/claude-slack-channel (public repo, personal account)
 - **Protocol:** Claude Code Channel protocol (`experimental/claude/channel`), requires Claude Code v2.1.80+
 - **Reference implementations:** Anthropic's official Telegram/Discord plugins (Bun, flat structure, pairing code flow) and jeremylongshore/claude-code-slack-channel (community, multi-channel, rich tools)
 - **Research:** 9 critical gaps identified and resolved in implementation plan (stdout corruption, startup ordering, bot_id filtering, graceful shutdown, dedup, unfurl suppression, etc.)

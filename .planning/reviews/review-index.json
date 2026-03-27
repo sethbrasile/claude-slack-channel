@@ -8,6 +8,15 @@
       "file": "2026-03-26-deep-review.md",
       "counts": { "critical": 2, "high": 6, "medium": 13, "low": 4 },
       "structuralPatterns": ["missing-integration-seams", "research-to-plan-drift"]
+    },
+    {
+      "date": "2026-03-26",
+      "type": "deep-review",
+      "mode": "pre-build",
+      "scope": "All planning documents (round 2)",
+      "file": "2026-03-26-deep-review-r2.md",
+      "counts": { "critical": 0, "high": 1, "medium": 14, "low": 7 },
+      "structuralPatterns": ["inconsistent-error-handling-depth"]
     }
   ],
   "patterns": {
@@ -15,13 +24,25 @@
       "name": "Missing Integration Seams",
       "firstSeen": "2026-03-26",
       "reviews": ["2026-03-26-deep-review.md"],
-      "status": "open"
+      "status": "resolved",
+      "resolvedBy": "Round 1 fixes — Task 7 rewritten as complete server.ts",
+      "resolvedDate": "2026-03-26"
     },
     "research-to-plan-drift": {
       "name": "Research-to-Plan Drift",
       "firstSeen": "2026-03-26",
       "reviews": ["2026-03-26-deep-review.md"],
-      "status": "open"
+      "status": "resolved",
+      "resolvedBy": "Round 1 fixes — all research recommendations carried to plan",
+      "resolvedDate": "2026-03-26"
+    },
+    "inconsistent-error-handling-depth": {
+      "name": "Inconsistent Error Handling Depth",
+      "firstSeen": "2026-03-26",
+      "reviews": ["2026-03-26-deep-review-r2.md"],
+      "status": "resolved",
+      "resolvedBy": "Round 2 fixes — WebClient logger, result.ok checks, permission handler try/catch, token scrubbing",
+      "resolvedDate": "2026-03-26"
     }
   }
 }

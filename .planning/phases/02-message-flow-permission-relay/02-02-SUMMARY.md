@@ -45,6 +45,8 @@ key-decisions:
   - "ThreadTracker NOT anchored in permission handler — tracker stays bound to original command thread so yes/no reply classifies as thread_reply"
 
 # Metrics
+requirements-completed: [BRDG-03, PERM-01, PERM-02, PERM-03, PERM-04, PERM-05]
+
 duration: ~5min
 completed: 2026-03-27
 ---

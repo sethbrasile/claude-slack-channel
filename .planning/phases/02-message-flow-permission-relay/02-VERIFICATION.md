@@ -38,7 +38,7 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Claude receives channel notifications for allowed inbound messages | FAILED | `slack-client.ts` line 137 uses `'slack_event'` listener which does not provide `event` field — `event` is always `undefined` at runtime; all messages silently dropped |
+| 1 | Claude receives channel notifications for allowed inbound messages | VERIFIED | `slack-client.ts` line 136 uses `'message'` listener — event field is correctly provided by SDK; gap resolved |
 | 2 | ThreadTracker classifies top-level messages as new_input | VERIFIED | `src/threads.ts` line 19: `if (!threadTs) return 'new_input'`; 8 passing unit tests |
 | 3 | ThreadTracker classifies replies to active thread as thread_reply | VERIFIED | `src/threads.ts` line 20: `if (threadTs === this._activeThreadTs) return 'thread_reply'`; test at threads.test.ts:26 |
 | 4 | ThreadTracker classifies stale/unknown thread replies as new_input | VERIFIED | `src/threads.ts` line 21: fallthrough `return 'new_input'`; test at threads.test.ts:33 |
@@ -50,7 +50,7 @@ human_verification:
 | 10 | formatPermissionRequest sanitizes triple backticks and broadcast mentions | VERIFIED | `src/permission.ts` lines 21–23 (zero-width space injection); line 31 (backtick sanitization); 3 passing tests |
 | 11 | start_thread:true anchors thread tracker; tracker NOT anchored on permission prompts | VERIFIED | `src/server.ts` lines 220–222 (`if (result.ts && args.start_thread) tracker.startThread`); permission handler has comment at line 157 explaining no startThread call |
 
-**Score:** 9/11 truths verified (1 failed — inbound message delivery)
+**Score:** 11/11 truths verified
 
 ### Required Artifacts
 
@@ -59,8 +59,8 @@ human_verification:
 | `src/threads.ts` | ThreadTracker class with activeThreadTs, startThread, abandon, classifyMessage | VERIFIED | 24 lines; exports ThreadTracker and MessageClassification; substantive implementation |
 | `src/channel-bridge.ts` | formatInboundNotification pure function | VERIFIED | 19 lines; exports formatInboundNotification and ChannelNotificationParams; correct implementation |
 | `src/permission.ts` | parsePermissionReply, formatPermissionRequest pure functions | VERIFIED | 38 lines; both functions exported; full implementation with sanitization |
-| `src/slack-client.ts` | createSlackClient returning { socketMode, web } with onMessage callback | PARTIAL | Signature and return value correct (lines 117–122); but listener on line 137 uses 'slack_event' instead of 'message' — causes runtime bug where event is always undefined |
-| `src/server.ts` | Fully wired CLI with reply tool, permission relay, channel bridge, thread tracking | PARTIAL | All integration flows wired correctly; depends on slack-client providing valid events which is broken |
+| `src/slack-client.ts` | createSlackClient returning { socketMode, web } with onMessage callback | VERIFIED | Signature and return value correct; listener uses `'message'` event with correct `{ event, ack }` destructure |
+| `src/server.ts` | Fully wired CLI with reply tool, permission relay, channel bridge, thread tracking | VERIFIED | All integration flows wired correctly |
 | `src/__tests__/threads.test.ts` | 8 unit tests for ThreadTracker | VERIFIED | 8 tests, all pass |
 | `src/__tests__/channel-bridge.test.ts` | 4 unit tests for formatInboundNotification | VERIFIED | 4 tests, all pass |
 | `src/__tests__/permission.test.ts` | 13+ unit tests for permission functions | VERIFIED | 15 tests (12 parsePermissionReply + 3 formatPermissionRequest), all pass |
@@ -77,13 +77,13 @@ human_verification:
 | `src/server.ts (onMessage)` | `src/channel-bridge.ts` | `formatInboundNotification(msg)` | WIRED | Line 130 |
 | `src/server.ts (permission handler)` | `src/threads.ts` | `tracker.activeThreadTs ?? undefined` | WIRED | Line 164 |
 | `src/server.ts (reply tool)` | `src/threads.ts` | `tracker.startThread(result.ts)` | WIRED | Line 221 |
-| `src/slack-client.ts` (listener) | Slack SDK `'message'` event | `socketMode.on('message', ...)` | NOT_WIRED | Line 137: uses `'slack_event'` — SDK does not emit `event` field on this event; plan required changing to `'message'` |
+| `src/slack-client.ts` (listener) | Slack SDK `'message'` event | `socketMode.on('message', ...)` | WIRED | Line 136: uses `'message'` event — SDK emits `{ event, ack }` with correct Slack message payload |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| BRDG-01 | 02-01 | Inbound Slack messages formatted as `notifications/claude/channel` with content, source, meta | BLOCKED | Formatting logic correct but message delivery broken — `slack_event` listener receives `event: undefined` |
+| BRDG-01 | 02-01 | Inbound Slack messages formatted as `notifications/claude/channel` with content, source, meta | SATISFIED | `slack-client.ts` uses `'message'` listener; `formatInboundNotification` produces correct payload; 4 unit tests pass |
 | BRDG-02 | 02-01 | Meta keys use underscores only | SATISFIED | channel-bridge.ts uses only `user`, `channel`, `ts`, `thread_ts`; test verifies no hyphens |
 | BRDG-03 | 02-02 | `reply` tool posts messages to Slack, returns `{ content: [{ type: 'text', text: 'sent' }] }` | SATISFIED | server.ts lines 206–223 |
 | PERM-01 | 02-02 | Server receives permission_request, formats readable Slack message | SATISFIED | setNotificationHandler + formatPermissionRequest in server.ts |
@@ -101,7 +101,7 @@ human_verification:
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `src/slack-client.ts` | 137 | `socketMode.on('slack_event', ...)` destructures `{ event }` which is not present in SDK's `slack_event` emission | Blocker | All inbound Slack messages silently dropped — `event` is `undefined`, `event.type !== 'message'` throws TypeError or causes NaN comparison, no messages ever forwarded to Claude |
+| ~~`src/slack-client.ts`~~ | ~~137~~ | ~~`socketMode.on('slack_event', ...)`~~ | ~~Blocker~~ | RESOLVED — changed to `socketMode.on('message', ...)` which provides `{ event, ack }` correctly |
 | `src/server.ts` | 61 | `createServer()` factory handler returns stub `{ content: [{ type: 'text', text: 'sent' }] }` without calling Slack | Info | Expected — CLI entry point overrides this at line 184; test suite tests factory only; comment on line 61 documents this explicitly |
 
 No `console.log` calls found in src/ — all logging uses `console.error` as required.
@@ -128,13 +128,9 @@ No `console.log` calls found in src/ — all logging uses `console.error` as req
 
 ### Gaps Summary
 
-One blocker prevents the phase goal from being fully achieved.
+No blockers. All phase deliverables are substantive and correctly implemented: ThreadTracker, formatInboundNotification, parsePermissionReply, formatPermissionRequest, the server.ts wiring, and the full 63-test suite all pass with clean typecheck and lint.
 
-**The inbound message pipeline is broken at the Slack event listener level.** The 02-02 plan explicitly required changing `socketMode.on('slack_event', ...)` to `socketMode.on('message', ...)` (plan Task 2 Part A, step 1) because the Slack SDK v2.0.6 only includes the `event` field on named `events_api` listeners (like `'message'`), not on the generic `'slack_event'` listener. The implementation kept the Phase 1 `'slack_event'` listener and added a destructure for `{ event, ack }`, but `event` is never present in `'slack_event'` payloads — only `{ ack, envelope_id, type, body, ... }` is provided. At runtime, `event` is `undefined` and `event.type !== 'message'` will throw a TypeError, silently dropping every inbound Slack message.
-
-The fix is a one-line change: replace `'slack_event'` with `'message'` on line 137, and remove the now-redundant `if (event.type !== 'message') return` guard on line 148 (the `'message'` listener fires only for Slack `message` events).
-
-All other phase deliverables are substantive and correctly implemented: ThreadTracker, formatInboundNotification, parsePermissionReply, formatPermissionRequest, the server.ts wiring, and the full 63-test suite all pass with clean typecheck and lint.
+_Note: The original verification identified a blocker where `slack-client.ts` used `'slack_event'` instead of `'message'`. This was fixed before Phase 3 — the listener now correctly uses `socketMode.on('message', ...)` which provides `{ event, ack }` with the Slack message payload._
 
 ---
 
