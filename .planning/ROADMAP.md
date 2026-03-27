@@ -45,11 +45,11 @@ Plans:
   3. When Claude requests a permission, a formatted approval message appears in the active Slack thread within 3 seconds
   4. Typing `yes {id}` or `no {id}` (or y/n shorthand, any case) in Slack resolves the permission and does NOT trigger a channel notification to Claude
   5. Thread replies go into the active thread; a new top-level message abandons the old thread and starts a new command context
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: threads.ts + channel-bridge.ts — ThreadTracker state machine and formatInboundNotification pure function
-- [ ] 02-02: permission.ts + server wiring — formatPermissionRequest, parsePermissionReply, permission relay integration in server.ts
+- [ ] 02-01-PLAN.md — ThreadTracker state machine (threads.ts) + formatInboundNotification (channel-bridge.ts), TDD
+- [ ] 02-02-PLAN.md — permission.ts (parsePermissionReply + formatPermissionRequest) + refactor slack-client.ts + full server.ts wiring
 
 ### Phase 3: Testing + CI
 **Goal**: Every pure function is covered by unit tests, the full test suite runs in GitHub Actions on every push and PR, and no commit can break typecheck, lint, or tests without the CI catching it.
