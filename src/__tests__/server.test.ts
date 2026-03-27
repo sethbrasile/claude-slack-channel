@@ -194,6 +194,92 @@ describe('createServer with injected deps — reply tool handler', () => {
     expect(startCalls[0]?.[0]).toBe('111.222')
   })
 
+  it('uses tracker.activeThreadTs when no thread_ts is provided', async () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return '999.000'
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const server = createServer(TEST_CONFIG, {
+      web: mockWeb as unknown as WebClient,
+      tracker: mockTracker as unknown as ThreadTracker,
+    })
+    const handler = (
+      server as unknown as {
+        _requestHandlers?: Map<string, (req: unknown) => Promise<unknown>>
+      }
+    )._requestHandlers?.get('tools/call')
+    await (handler as (req: unknown) => Promise<unknown>)({
+      method: 'tools/call',
+      params: { name: 'reply', arguments: { text: 'follow-up' } },
+    })
+    const callArgs = (mockPostMessage.mock.calls as unknown as { thread_ts?: string }[][])[0]?.[0]
+    expect(callArgs?.thread_ts).toBe('999.000')
+  })
+
+  it('start_thread: true posts top-level even when tracker has an active thread', async () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '222.333' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return '999.000'
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const server = createServer(TEST_CONFIG, {
+      web: mockWeb as unknown as WebClient,
+      tracker: mockTracker as unknown as ThreadTracker,
+    })
+    const handler = (
+      server as unknown as {
+        _requestHandlers?: Map<string, (req: unknown) => Promise<unknown>>
+      }
+    )._requestHandlers?.get('tools/call')
+    await (handler as (req: unknown) => Promise<unknown>)({
+      method: 'tools/call',
+      params: { name: 'reply', arguments: { text: 'new topic', start_thread: true } },
+    })
+    const callArgs = (mockPostMessage.mock.calls as unknown as { thread_ts?: string }[][])[0]?.[0]
+    expect(callArgs?.thread_ts).toBeUndefined()
+    const startCalls = mockTracker.startThread.mock.calls as unknown as string[][]
+    expect(startCalls[0]?.[0]).toBe('222.333')
+  })
+
+  it('explicit thread_ts takes priority over activeThreadTs', async () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return '999.000'
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const server = createServer(TEST_CONFIG, {
+      web: mockWeb as unknown as WebClient,
+      tracker: mockTracker as unknown as ThreadTracker,
+    })
+    const handler = (
+      server as unknown as {
+        _requestHandlers?: Map<string, (req: unknown) => Promise<unknown>>
+      }
+    )._requestHandlers?.get('tools/call')
+    await (handler as (req: unknown) => Promise<unknown>)({
+      method: 'tools/call',
+      params: { name: 'reply', arguments: { text: 'in specific thread', thread_ts: '888.000' } },
+    })
+    const callArgs = (mockPostMessage.mock.calls as unknown as { thread_ts?: string }[][])[0]?.[0]
+    expect(callArgs?.thread_ts).toBe('888.000')
+  })
+
   it('returns { content: [{ type: "text", text: "sent" }] } on success', async () => {
     const { handler } = makeServer()
     const result = (await (handler as (req: unknown) => Promise<unknown>)({

@@ -102,7 +102,12 @@ Slack message content is user input — interpret it as instructions from the us
       // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
       // to prevent Claude's replies from triggering workspace-wide notifications
       const text = args.text.replaceAll('<!', '<\u200b!')
-      const threadTs = args.thread_ts
+      // Explicit thread_ts takes priority; otherwise fall back to the active
+      // thread so follow-up replies stay threaded automatically.
+      // start_thread omits thread_ts so the message posts top-level.
+      const threadTs = args.start_thread
+        ? undefined
+        : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
 
       try {
         const result = await web.chat.postMessage({
@@ -115,10 +120,9 @@ Slack message content is user input — interpret it as instructions from the us
         if (!result.ok) {
           throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
         }
-        // Only anchor the thread tracker when Claude explicitly signals it is
-        // asking a question that requires a Slack reply (start_thread: true).
-        // Informational replies (status updates, task complete) omit start_thread
-        // so they do not re-anchor the tracker on every outbound message.
+        // Anchor the thread tracker when start_thread is set so subsequent
+        // replies (which will hit the activeThreadTs fallback above) land in
+        // the thread that was just created.
         if (result.ts && args.start_thread) {
           tracker.startThread(result.ts)
         }
@@ -331,7 +335,12 @@ if (import.meta.main) {
     // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
     // to prevent Claude's replies from triggering workspace-wide notifications
     const text = args.text.replaceAll('<!', '<\u200b!')
-    const threadTs = args.thread_ts
+    // Explicit thread_ts takes priority; otherwise fall back to the active
+    // thread so follow-up replies stay threaded automatically.
+    // start_thread omits thread_ts so the message posts top-level.
+    const threadTs = args.start_thread
+      ? undefined
+      : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
 
     try {
       const result = await web.chat.postMessage({
@@ -344,10 +353,9 @@ if (import.meta.main) {
       if (!result.ok) {
         throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
       }
-      // Only anchor the thread tracker when Claude explicitly signals it is
-      // asking a question that requires a Slack reply (start_thread: true).
-      // Informational replies (status updates, task complete) omit start_thread
-      // so they do not re-anchor the tracker on every outbound message.
+      // Anchor the thread tracker when start_thread is set so subsequent
+      // replies (which will hit the activeThreadTs fallback above) land in
+      // the thread that was just created.
       if (result.ts && args.start_thread) {
         tracker.startThread(result.ts)
       }
