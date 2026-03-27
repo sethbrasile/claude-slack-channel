@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Testability & Dead Code Cleanup** - Align test surface with runtime surface, remove dead code, add missing test coverage (QC fix)
 - [ ] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix)
 - [ ] **Phase 7: Config & Security Tightening** - Close validation gap and defense-in-depth items (QC fix)
-- [ ] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix)
+- [x] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix) (completed 2026-03-27)
 
 ## Phase Details
 
@@ -157,4 +157,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 5. Testability & Dead Code Cleanup | 0/0 | Pending | — |
 | 6. Shutdown & Lifecycle Hardening | 0/0 | Pending | — |
 | 7. Config & Security Tightening | 0/0 | Pending | — |
-| 8. CI/CD Polish | 0/0 | Pending | — |
+| 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
