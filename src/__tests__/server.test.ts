@@ -69,11 +69,17 @@ describe('createServer', () => {
     const server = createServer(TEST_CONFIG)
     const handler = (
       server as unknown as {
-        _requestHandlers?: Map<string, (req: unknown) => Promise<{ tools: { name: string; inputSchema: { required?: string[] } }[] }>>
+        _requestHandlers?: Map<
+          string,
+          (
+            req: unknown,
+          ) => Promise<{ tools: { name: string; inputSchema: { required?: string[] } }[] }>
+        >
       }
     )._requestHandlers?.get('tools/list')
     expect(handler).toBeDefined()
-    const result = await handler!({ method: 'tools/list', params: {} })
+    if (!handler) throw new Error('handler not registered')
+    const result = await handler({ method: 'tools/list', params: {} })
     const replyTool = result.tools.find((t) => t.name === 'reply')
     expect(replyTool?.inputSchema?.required).toContain('text')
   })
