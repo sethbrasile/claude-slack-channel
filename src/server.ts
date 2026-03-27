@@ -7,11 +7,7 @@ import { z } from 'zod'
 import packageJson from '../package.json'
 import { formatInboundNotification } from './channel-bridge.ts'
 import { parseConfig, safeErrorMessage } from './config.ts'
-import {
-  formatPermissionRequest,
-  PERMISSION_ID_RE,
-  parsePermissionReply,
-} from './permission.ts'
+import { formatPermissionRequest, PERMISSION_ID_RE, parsePermissionReply } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig } from './types.ts'
@@ -185,7 +181,8 @@ if (import.meta.main) {
           if (verdict) {
             await server.notification({
               method: 'notifications/claude/channel/permission',
-              params: verdict as unknown as Record<string, unknown>,
+              // SDK requires params: Record<string, unknown>; PermissionVerdict is structurally compatible
+              params: verdict as Record<string, unknown>,
             })
             return // do not forward as channel notification
           }
