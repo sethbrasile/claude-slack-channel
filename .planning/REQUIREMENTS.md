@@ -9,23 +9,23 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### MCP Server
 
-- [ ] **MCP-01**: Server declares `experimental['claude/channel']` capability
-- [ ] **MCP-02**: Server declares `experimental['claude/channel/permission']` capability
-- [ ] **MCP-03**: Server provides `instructions` field that teaches Claude how to interpret `<channel>` tags and use the `reply` tool
-- [ ] **MCP-04**: Server exposes `reply` tool with `text`, `thread_ts`, and `start_thread` parameters
-- [ ] **MCP-05**: Server enforces startup ordering — `server.connect(transport)` completes before Socket Mode starts
-- [ ] **MCP-06**: Server registers global error handlers (`uncaughtException`, `unhandledRejection`) before transport connects
-- [ ] **MCP-07**: Server handles graceful shutdown on SIGTERM, SIGINT, and stdin close
+- [x] **MCP-01**: Server declares `experimental['claude/channel']` capability
+- [x] **MCP-02**: Server declares `experimental['claude/channel/permission']` capability
+- [x] **MCP-03**: Server provides `instructions` field that teaches Claude how to interpret `<channel>` tags and use the `reply` tool
+- [x] **MCP-04**: Server exposes `reply` tool with `text`, `thread_ts`, and `start_thread` parameters
+- [x] **MCP-05**: Server enforces startup ordering — `server.connect(transport)` completes before Socket Mode starts
+- [x] **MCP-06**: Server registers global error handlers (`uncaughtException`, `unhandledRejection`) before transport connects
+- [x] **MCP-07**: Server handles graceful shutdown on SIGTERM, SIGINT, and stdin close
 
 ### Slack Connectivity
 
-- [ ] **SLCK-01**: Server connects to Slack via Socket Mode with auto-reconnect
-- [ ] **SLCK-02**: All Slack SDK logging routes to stderr (stdout is owned by MCP JSON-RPC)
-- [ ] **SLCK-03**: Server filters inbound messages by channel ID and user allowlist
-- [ ] **SLCK-04**: Server rejects messages with `bot_id` OR `subtype` to prevent bot loops
-- [ ] **SLCK-05**: Server deduplicates messages by `ts` with 30-second TTL
-- [ ] **SLCK-06**: Server calls `ack()` as first action in every event handler, wrapped in try/catch
-- [ ] **SLCK-07**: All outbound `chat.postMessage` calls include `unfurl_links: false, unfurl_media: false`
+- [x] **SLCK-01**: Server connects to Slack via Socket Mode with auto-reconnect
+- [x] **SLCK-02**: All Slack SDK logging routes to stderr (stdout is owned by MCP JSON-RPC)
+- [x] **SLCK-03**: Server filters inbound messages by channel ID and user allowlist
+- [x] **SLCK-04**: Server rejects messages with `bot_id` OR `subtype` to prevent bot loops
+- [x] **SLCK-05**: Server deduplicates messages by `ts` with 30-second TTL
+- [x] **SLCK-06**: Server calls `ack()` as first action in every event handler, wrapped in try/catch
+- [x] **SLCK-07**: All outbound `chat.postMessage` calls include `unfurl_links: false, unfurl_media: false`
 
 ### Channel Bridge
 
@@ -124,20 +124,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MCP-01 | Phase 1 | Pending |
-| MCP-02 | Phase 1 | Pending |
-| MCP-03 | Phase 1 | Pending |
-| MCP-04 | Phase 1 | Pending |
-| MCP-05 | Phase 1 | Pending |
-| MCP-06 | Phase 1 | Pending |
-| MCP-07 | Phase 1 | Pending |
-| SLCK-01 | Phase 1 | Pending |
-| SLCK-02 | Phase 1 | Pending |
-| SLCK-03 | Phase 1 | Pending |
-| SLCK-04 | Phase 1 | Pending |
-| SLCK-05 | Phase 1 | Pending |
-| SLCK-06 | Phase 1 | Pending |
-| SLCK-07 | Phase 1 | Pending |
+| MCP-01 | Phase 1 | Complete |
+| MCP-02 | Phase 1 | Complete |
+| MCP-03 | Phase 1 | Complete |
+| MCP-04 | Phase 1 | Complete |
+| MCP-05 | Phase 1 | Complete |
+| MCP-06 | Phase 1 | Complete |
+| MCP-07 | Phase 1 | Complete |
+| SLCK-01 | Phase 1 | Complete |
+| SLCK-02 | Phase 1 | Complete |
+| SLCK-03 | Phase 1 | Complete |
+| SLCK-04 | Phase 1 | Complete |
+| SLCK-05 | Phase 1 | Complete |
+| SLCK-06 | Phase 1 | Complete |
+| SLCK-07 | Phase 1 | Complete |
 | CONF-01 | Phase 1 | Complete |
 | CONF-02 | Phase 1 | Complete |
 | CONF-03 | Phase 1 | Complete |
