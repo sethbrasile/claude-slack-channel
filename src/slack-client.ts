@@ -1,8 +1,6 @@
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import type { Logger } from '@slack/logger'
 import { LogLevel, SocketModeClient } from '@slack/socket-mode'
 import { WebClient } from '@slack/web-api'
-import type { ChannelConfig } from './types.ts'
 
 // ============================================================
 // Interfaces
@@ -32,7 +30,7 @@ export interface SlackMessage {
   thread_ts?: string
 }
 
-export type MessageHandler = (message: SlackMessage) => void
+export type MessageHandler = (message: SlackMessage) => void | Promise<void>
 
 // ============================================================
 // Pure filter function — injectable for testability
@@ -105,32 +103,32 @@ const DEDUP_TTL_MS = 30_000
 /**
  * Creates the Slack Socket Mode client.
  *
+ * Returns { socketMode, web } so callers can:
+ * - Call socketMode.start() / socketMode.disconnect() for lifecycle management
+ * - Call web.chat.postMessage() for outbound messages (reply tool, permission relay)
+ *
  * IMPORTANT: This function must only be called AFTER server.connect(transport)
  * has completed. The MCP transport must be established before Slack can start
  * receiving messages and sending notifications.
  *
- * NOTE: All chat.postMessage calls (Phase 2 reply tool) must include
- * unfurl_links: false, unfurl_media: false to prevent Slack from expanding
- * URLs in Claude's replies.
+ * NOTE: All chat.postMessage calls must include unfurl_links: false, unfurl_media: false
+ * to prevent Slack from expanding URLs in Claude's replies.
  */
 export function createSlackClient(
-  config: ChannelConfig,
-  _server: Server,
-): { start(): Promise<void>; stop(): Promise<void> } {
+  appToken: string,
+  botToken: string,
+  filter: MessageFilter,
+  onMessage: MessageHandler,
+): { socketMode: SocketModeClient; web: WebClient } {
   const logger = createStderrLogger()
 
-  // Module-level TTL dedup map: ts -> expiry timestamp
+  // TTL dedup map: ts -> expiry timestamp
   const seenTs = new Map<string, number>()
 
-  // WebClient for outbound messages (Phase 2 reply tool)
-  // NOTE: unfurl_links: false, unfurl_media: false required on all postMessage calls
-  // Stored on the return object so Phase 2 can access it; suppressed unused-var warning via void
-  const webClient = new WebClient(config.slackBotToken, { logger })
-  // Will be used in Phase 2 — reference to prevent premature dead-code removal
-  void webClient
+  const web = new WebClient(botToken, { logger })
 
   const socketMode = new SocketModeClient({
-    appToken: config.slackAppToken,
+    appToken,
     logger,
     autoReconnectEnabled: true,
   })
@@ -148,13 +146,6 @@ export function createSlackClient(
       }
 
       if (event.type !== 'message') return
-      if (event.subtype) return
-      if (event.bot_id) return
-
-      const filter: MessageFilter = {
-        channelId: config.channelId,
-        allowedUserIds: config.allowedUserIds,
-      }
       if (!shouldProcessMessage(event, filter)) return
 
       // TTL dedup: expire old entries, then check/add current ts
@@ -167,15 +158,17 @@ export function createSlackClient(
       if (!ts || seenTs.has(ts)) return
       seenTs.set(ts, now + DEDUP_TTL_MS)
 
-      // Phase 1 stub: message received but forwarding not yet implemented
-      console.error('[slack-client] message received (forwarding not yet implemented)', ts)
+      const msg: SlackMessage = {
+        text: event.text ?? '',
+        user: event.user ?? '',
+        channel: event.channel ?? '',
+        ts,
+        ...(event.thread_ts ? { thread_ts: event.thread_ts } : {}),
+      }
+
+      await onMessage(msg)
     },
   )
 
-  return {
-    start: async () => {
-      await socketMode.start()
-    },
-    stop: () => socketMode.disconnect(),
-  }
+  return { socketMode, web }
 }
