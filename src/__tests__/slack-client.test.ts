@@ -57,6 +57,14 @@ describe('isDuplicate', () => {
     isDuplicate('ts1', seen)
     expect(isDuplicate('ts2', seen)).toBe(false)
   })
+
+  it('returns false after ts is removed from seen (simulates TTL expiry)', () => {
+    const seen = new Set<string>()
+    isDuplicate('ts1', seen)
+    // Simulate TTL expiry: caller removes expired entry from the Set
+    seen.delete('ts1')
+    expect(isDuplicate('ts1', seen)).toBe(false)
+  })
 })
 
 describe('createStderrLogger', () => {
