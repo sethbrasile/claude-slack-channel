@@ -305,17 +305,29 @@ if (import.meta.main) {
     }
   })
 
+  // Idempotency guard — SIGTERM, SIGINT, and stdin close can fire simultaneously.
+  // The guard ensures shutdown() executes its body exactly once.
+  let shutdownInitiated = false
+
   // Graceful shutdown — disconnects Socket Mode before closing the MCP server
   // so no in-flight Slack events are processed after the transport is gone.
   async function shutdown(signal: string): Promise<void> {
+    if (shutdownInitiated) {
+      console.error(`[shutdown] already in progress, ignoring ${signal}`)
+      return
+    }
+    shutdownInitiated = true
     console.error(`[shutdown] ${signal}`)
     try {
       await socketMode.disconnect()
     } catch (err) {
       console.error('[shutdown] socketMode.disconnect failed:', safeErrorMessage(err))
     }
+    // Capture the queue reference immediately after disconnect resolves.
+    // A post-disconnect race could otherwise extend the live messageQueue variable.
+    const drainQueue = messageQueue
     try {
-      await messageQueue // drain in-flight messages before closing transport
+      await drainQueue // drain in-flight messages before closing transport
     } catch (err) {
       console.error('[shutdown] messageQueue drain failed:', safeErrorMessage(err))
     }
