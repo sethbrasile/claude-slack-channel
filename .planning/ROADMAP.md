@@ -92,5 +92,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-27 |
 | 2. Message Flow + Permission Relay | 2/2 | Complete    | 2026-03-27 |
-| 3. Testing + CI | 0/2 | Not started | - |
+| 3. Testing + CI | 1/2 | In Progress|  |
 | 4. Package + Documentation | 0/2 | Not started | - |

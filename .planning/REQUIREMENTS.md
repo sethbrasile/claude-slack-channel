@@ -57,16 +57,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: Unit tests cover `shouldProcessMessage` (channel/user/bot_id/subtype filtering)
-- [ ] **TEST-02**: Unit tests cover `isDuplicate` (dedup logic)
-- [ ] **TEST-03**: Unit tests cover `parsePermissionReply` (verdict parsing with edge cases)
-- [ ] **TEST-04**: Unit tests cover `formatPermissionRequest` (formatting, sanitization)
-- [ ] **TEST-05**: Unit tests cover `formatInboundNotification` (meta key format, threading)
-- [ ] **TEST-06**: Unit tests cover `ThreadTracker` (classification, abandon, replace)
-- [ ] **TEST-07**: Unit tests cover `parseConfig` (valid config, all failure modes)
-- [ ] **TEST-08**: Unit tests cover `createServer` (capability declaration)
-- [ ] **TEST-09**: Type checking passes with `bunx tsc --noEmit`
-- [ ] **TEST-10**: Biome linting passes with `bunx biome check .`
+- [x] **TEST-01**: Unit tests cover `shouldProcessMessage` (channel/user/bot_id/subtype filtering)
+- [x] **TEST-02**: Unit tests cover `isDuplicate` (dedup logic)
+- [x] **TEST-03**: Unit tests cover `parsePermissionReply` (verdict parsing with edge cases)
+- [x] **TEST-04**: Unit tests cover `formatPermissionRequest` (formatting, sanitization)
+- [x] **TEST-05**: Unit tests cover `formatInboundNotification` (meta key format, threading)
+- [x] **TEST-06**: Unit tests cover `ThreadTracker` (classification, abandon, replace)
+- [x] **TEST-07**: Unit tests cover `parseConfig` (valid config, all failure modes)
+- [x] **TEST-08**: Unit tests cover `createServer` (capability declaration)
+- [x] **TEST-09**: Type checking passes with `bunx tsc --noEmit`
+- [x] **TEST-10**: Biome linting passes with `bunx biome check .`
 
 ### CI/CD
 
@@ -154,16 +154,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THRD-01 | Phase 2 | Complete |
 | THRD-02 | Phase 2 | Complete |
 | THRD-03 | Phase 2 | Complete |
-| TEST-01 | Phase 3 | Pending |
-| TEST-02 | Phase 3 | Pending |
-| TEST-03 | Phase 3 | Pending |
-| TEST-04 | Phase 3 | Pending |
-| TEST-05 | Phase 3 | Pending |
-| TEST-06 | Phase 3 | Pending |
-| TEST-07 | Phase 3 | Pending |
-| TEST-08 | Phase 3 | Pending |
-| TEST-09 | Phase 3 | Pending |
-| TEST-10 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
+| TEST-02 | Phase 3 | Complete |
+| TEST-03 | Phase 3 | Complete |
+| TEST-04 | Phase 3 | Complete |
+| TEST-05 | Phase 3 | Complete |
+| TEST-06 | Phase 3 | Complete |
+| TEST-07 | Phase 3 | Complete |
+| TEST-08 | Phase 3 | Complete |
+| TEST-09 | Phase 3 | Complete |
+| TEST-10 | Phase 3 | Complete |
 | CICD-01 | Phase 3 | Pending |
 | CICD-02 | Phase 3 | Pending |
 | CICD-03 | Phase 3 | Pending |
