@@ -8,18 +8,18 @@
 An MCP server that bridges Claude Code sessions to a Slack channel via Socket Mode. Claude receives commands from Slack, replies in threads, and posts permission prompts that operators approve or deny — all from their phone if they want to. No webhooks, no public URLs, no port forwarding.
 
 ```
-You (Slack)          Socket Mode          Claude Code
-    |                    |                    |
-    |-- "deploy to      |                    |
-    |    staging" ------>|---> notification ->|
-    |                    |                    |-- runs tasks
-    |                    |<-- permission req -|
-    |<-- "Allow rm -rf   |                    |
-    |    node_modules?"  |                    |
-    |-- "yes a1b2c" --->|---> verdict ------>|
-    |                    |                    |-- continues
-    |<-- "Done. Deployed |<--- reply --------|
-    |    to staging."    |                    |
+  You (Slack)                                Claude Code
+      │                                          │
+   1. │──── "deploy to staging" ────────────────▶│
+      │                                          │ runs tasks...
+      │                                          │
+   2. │◀─── 🔒 "Allow rm -rf node_modules?" ────│
+      │                                          │
+   3. │──── "yes a1b2c" ───────────────────────▶│
+      │                                          │ continues...
+      │                                          │
+   4. │◀─── "Done. Deployed to staging." ────────│
+      │                                          │
 ```
 
 ---
