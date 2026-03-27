@@ -1,6 +1,6 @@
 import { describe, expect, it, spyOn } from 'bun:test'
 import { LogLevel } from '@slack/logger'
-import { createStderrLogger, shouldProcessMessage } from '../slack-client.ts'
+import { createStderrLogger, shouldProcessMessage, validateEventTs } from '../slack-client.ts'
 
 const FILTER = {
   channelId: 'C123',
@@ -87,5 +87,35 @@ describe('createStderrLogger', () => {
   it('getLevel returns LogLevel.INFO', () => {
     const logger = createStderrLogger()
     expect(logger.getLevel()).toBe(LogLevel.INFO)
+  })
+})
+
+describe('validateEventTs', () => {
+  it('returns ts string when present and non-empty', () => {
+    expect(validateEventTs('1234567890.123456')).toBe('1234567890.123456')
+  })
+
+  it('returns null and logs [slack-client] event without ts when ts is undefined', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const result = validateEventTs(undefined)
+    expect(result).toBeNull()
+    expect(spy).toHaveBeenCalledWith('[slack-client] event without ts')
+    spy.mockRestore()
+  })
+
+  it('returns null and logs [slack-client] event without ts when ts is empty string', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const result = validateEventTs('')
+    expect(result).toBeNull()
+    expect(spy).toHaveBeenCalledWith('[slack-client] event without ts')
+    spy.mockRestore()
+  })
+
+  it('null return prevents seenTs pollution (seenTs.set never reached on null)', () => {
+    // validateEventTs returns null for missing/empty ts.
+    // The event handler checks: if (ts === null || seenTs.has(ts)) return
+    // so seenTs.set() is never reached — empty-string ts cannot pollute the map.
+    expect(validateEventTs(undefined)).toBeNull()
+    expect(validateEventTs('')).toBeNull()
   })
 })
