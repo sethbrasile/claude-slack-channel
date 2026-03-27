@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-27
+
+### Breaking Changes
+
+- **`createServer()` signature changed** — accepts optional second argument `{ web?, tracker? }` for dependency injection. Library consumers can now get a fully functional server with reply handling by passing deps. The previous stub reply handler (returned `'sent'` for all calls) is no longer registered when deps are omitted.
+- **`isDuplicate()` removed** — dead code export deleted from `slack-client.ts`. Use the deduplication built into `createSlackClient()` instead.
+- **`SLACK_CHANNEL_ID` validation tightened** — now requires Slack channel/group ID format (`/^[CG][A-Z0-9]+$/`). Previously accepted any non-empty string.
+
+### Added
+
+- `PERMISSION_ID_PATTERN` and `PERMISSION_ID_RE` exports from `permission.ts` — shared regex constant for permission request ID validation
+- `validateEventTs()` export from `slack-client.ts` — pure function for ts-field validation with logging
+- Idempotent shutdown guard — prevents double-execution when SIGTERM/SIGINT/stdin-close fire simultaneously
+- Slack SDK logger error scrubbing — tokens in SDK error output are now redacted via `safeErrorMessage`
+- Events without `ts` field now logged to stderr instead of silently dropped
+
+### Fixed
+
+- `safeErrorMessage` token regex broadened (`[^\s]+` instead of `[\w-]+`) to catch multi-line token patterns
+- Permission ID regex duplication eliminated — single source of truth in `permission.ts`
+- Double-cast patterns documented with inline comments explaining SDK type constraints
+- `prepublishOnly` script now includes lint step
+
 ## [0.1.0] - 2026-03-27
 
 ### Added
