@@ -61,11 +61,11 @@ Plans:
   3. `bunx biome check .` exits 0 with no lint or format violations
   4. Opening a PR on GitHub triggers the CI workflow and all three checks (typecheck, lint, test) must pass before merge
   5. Pushing a `v*` tag triggers the release workflow and publishes to npm with provenance attestation
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Unit tests — all pure function test files for shouldProcessMessage, isDuplicate, parsePermissionReply, formatPermissionRequest, formatInboundNotification, ThreadTracker, parseConfig, createServer
-- [ ] 03-02: GitHub Actions — CI workflow (push/PR) and release workflow (v* tags, npm publish with provenance)
+- [ ] 03-01-PLAN.md — Audit and verify unit test coverage for TEST-01 through TEST-10 (all 6 test files + tsc + biome)
+- [ ] 03-02-PLAN.md — GitHub Actions CI workflow (push/PR) and release workflow (v* tags, npm publish with provenance)
 
 ### Phase 4: Package + Documentation
 **Goal**: The package is installable via npx, Slack app setup is reproducible from a manifest file, and all community-facing documentation is present so external contributors and operators can use the server without asking questions.
