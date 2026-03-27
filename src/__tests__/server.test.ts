@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test'
 import type { WebClient } from '@slack/web-api'
 import { createServer } from '../server.ts'
-import { ThreadTracker } from '../threads.ts'
+import type { ThreadTracker } from '../threads.ts'
 
 const TEST_CONFIG = {
   channelId: 'C0123456789',
@@ -128,7 +128,7 @@ describe('createServer with injected deps — reply tool handler', () => {
       params: { name: 'nonexistent', arguments: {} },
     })) as { content: { text: string }[]; isError: boolean }
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('Unknown tool')
+    expect((result.content as { text: string }[])[0]?.text).toContain('Unknown tool')
   })
 
   it('returns isError on Zod validation failure (missing required text field)', async () => {
@@ -138,7 +138,7 @@ describe('createServer with injected deps — reply tool handler', () => {
       params: { name: 'reply', arguments: { thread_ts: '111' } },
     })) as { content: { text: string }[]; isError: boolean }
     expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('Invalid arguments')
+    expect((result.content as { text: string }[])[0]?.text).toContain('Invalid arguments')
   })
 
   it('strips <!channel> broadcast mention from reply text', async () => {
@@ -147,8 +147,9 @@ describe('createServer with injected deps — reply tool handler', () => {
       method: 'tools/call',
       params: { name: 'reply', arguments: { text: 'Hello <!channel>' } },
     })
-    const callArgs = mockPostMessage.mock.calls[0][0] as { text: string }
-    expect(callArgs.text).not.toContain('<!channel>')
+    const firstCall = (mockPostMessage.mock.calls as unknown as { text: string }[][])[0]
+    const callArgs = firstCall?.[0]
+    expect(callArgs?.text).not.toContain('<!channel>')
   })
 
   it('strips <!here> broadcast mention from reply text', async () => {
@@ -157,8 +158,9 @@ describe('createServer with injected deps — reply tool handler', () => {
       method: 'tools/call',
       params: { name: 'reply', arguments: { text: 'Hey <!here>' } },
     })
-    const callArgs = mockPostMessage.mock.calls[0][0] as { text: string }
-    expect(callArgs.text).not.toContain('<!here>')
+    const firstCall = (mockPostMessage.mock.calls as unknown as { text: string }[][])[0]
+    const callArgs = firstCall?.[0]
+    expect(callArgs?.text).not.toContain('<!here>')
   })
 
   it('strips <!everyone> broadcast mention from reply text', async () => {
@@ -167,8 +169,9 @@ describe('createServer with injected deps — reply tool handler', () => {
       method: 'tools/call',
       params: { name: 'reply', arguments: { text: 'Notify <!everyone>' } },
     })
-    const callArgs = mockPostMessage.mock.calls[0][0] as { text: string }
-    expect(callArgs.text).not.toContain('<!everyone>')
+    const firstCall = (mockPostMessage.mock.calls as unknown as { text: string }[][])[0]
+    const callArgs = firstCall?.[0]
+    expect(callArgs?.text).not.toContain('<!everyone>')
   })
 
   it('does NOT call tracker.startThread when start_thread is false', async () => {
@@ -186,8 +189,9 @@ describe('createServer with injected deps — reply tool handler', () => {
       method: 'tools/call',
       params: { name: 'reply', arguments: { text: 'question?', start_thread: true } },
     })
-    expect(mockTracker.startThread.mock.calls.length).toBe(1)
-    expect(mockTracker.startThread.mock.calls[0][0]).toBe('111.222')
+    const startCalls = mockTracker.startThread.mock.calls as unknown as string[][]
+    expect(startCalls.length).toBe(1)
+    expect(startCalls[0]?.[0]).toBe('111.222')
   })
 
   it('returns { content: [{ type: "text", text: "sent" }] } on success', async () => {
@@ -196,7 +200,8 @@ describe('createServer with injected deps — reply tool handler', () => {
       method: 'tools/call',
       params: { name: 'reply', arguments: { text: 'hello' } },
     })) as { content: { type: string; text: string }[] }
-    expect(result.content[0].type).toBe('text')
-    expect(result.content[0].text).toBe('sent')
+    const firstContent = (result.content as { type: string; text: string }[])[0]
+    expect(firstContent?.type).toBe('text')
+    expect(firstContent?.text).toBe('sent')
   })
 })
