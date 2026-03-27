@@ -52,7 +52,7 @@ User elected to fix all 4 groupings as voluntary tech-debt.
 | 5 | Testability & Dead Code Cleanup | pending | QC-1-01, QC-1-04, QC-1-05, QC-1-11, QC-1-12, QC-1-18, QC-1-19, QC-1-21, QC-1-23 |
 | 6 | Shutdown & Lifecycle Hardening | pending | QC-1-03, QC-1-14 |
 | 7 | Config & Security Tightening | pending | QC-1-06, QC-1-07, QC-1-08, QC-1-10, QC-1-22 |
-| 8 | CI/CD Polish | pending | QC-1-02, QC-1-09, QC-1-13, QC-1-15, QC-1-16, QC-1-17 |
+| 8 | CI/CD Polish | complete | QC-1-02, QC-1-09, QC-1-13, QC-1-15, QC-1-16, QC-1-17 |
 
 ## Execution Plan
 
@@ -67,5 +67,6 @@ User elected to fix all 4 groupings as voluntary tech-debt.
 ## Current Position
 
 Round: 1
-Step: planning
-Next: Plan wave 1 — Phase 5 and Phase 8 (parallel)
+Step: executing wave 1
+Completed: Phase 8 (CI/CD Polish) — 2026-03-27
+Next: Execute Phase 5 (Testability & Dead Code Cleanup) to complete wave 1
