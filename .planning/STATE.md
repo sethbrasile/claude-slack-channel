@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-27T05:22:56.115Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-27T05:23:44.095Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 50
 ---
 
@@ -57,6 +57,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-testing-ci P01 | 8 | 2 tasks | 1 files |
 | Phase 03-testing-ci P02 | 1 | 2 tasks | 2 files |
 | Phase 04-package-documentation P01 | 2 | 2 tasks | 5 files |
+| Phase 04-package-documentation P02 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 04-package-documentation]: publishConfig.access public added to package.json as belt-and-suspenders alongside --access public CLI flag in release workflow
 - [Phase 04-package-documentation]: .gitignore !.env.example negation added — .env.* glob was too broad and blocked committing the operator-facing template
 - [Phase 04-package-documentation]: groups:history included in Slack manifest alongside channels:history for private channel support; connections:write documented as comment not manifest field
+- [Phase 04-package-documentation]: bunx-only invocation: npx explicitly warned as unsupported because bin points to .ts file Node.js cannot execute
+- [Phase 04-package-documentation]: Multi-project pattern documented as multiple independent processes — matches actual architecture (no multi-channel mode exists)
+- [Phase 04-package-documentation]: CHANGELOG initialized with both [Unreleased] and [0.1.0] sections to support release workflow
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T05:22:56.112Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-27T05:23:44.093Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
