@@ -1,4 +1,5 @@
 import { describe, expect, it, spyOn } from 'bun:test'
+import { LogLevel } from '@slack/logger'
 import { createStderrLogger, shouldProcessMessage } from '../slack-client.ts'
 
 const FILTER = {
@@ -41,35 +42,50 @@ describe('shouldProcessMessage', () => {
 })
 
 describe('createStderrLogger', () => {
-  it('routes info messages to stderr', () => {
+  it('routes info messages to stderr with [slack:info] prefix', () => {
     const spy = spyOn(console, 'error').mockImplementation(() => {})
     const logger = createStderrLogger()
     logger.info('test message')
-    expect(spy).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalledWith('[slack:info]', 'test message')
     spy.mockRestore()
   })
 
-  it('routes warn messages to stderr', () => {
+  it('routes warn messages to stderr with [slack:warn] prefix', () => {
     const spy = spyOn(console, 'error').mockImplementation(() => {})
     const logger = createStderrLogger()
     logger.warn('test warning')
-    expect(spy).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalledWith('[slack:warn]', 'test warning')
     spy.mockRestore()
   })
 
-  it('routes debug messages to stderr', () => {
+  it('routes debug messages to stderr with [slack:debug] prefix', () => {
     const spy = spyOn(console, 'error').mockImplementation(() => {})
     const logger = createStderrLogger()
     logger.debug('test debug')
-    expect(spy).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalledWith('[slack:debug]', 'test debug')
     spy.mockRestore()
   })
 
-  it('routes error messages to stderr', () => {
+  it('routes error messages to stderr with [slack:error] prefix', () => {
     const spy = spyOn(console, 'error').mockImplementation(() => {})
     const logger = createStderrLogger()
     logger.error('test error')
-    expect(spy).toHaveBeenCalled()
+    expect(spy).toHaveBeenCalledWith('[slack:error]', 'test error')
     spy.mockRestore()
+  })
+
+  it('setLevel does not throw', () => {
+    const logger = createStderrLogger()
+    expect(() => logger.setLevel(LogLevel.DEBUG)).not.toThrow()
+  })
+
+  it('setName does not throw', () => {
+    const logger = createStderrLogger()
+    expect(() => logger.setName('test-name')).not.toThrow()
+  })
+
+  it('getLevel returns LogLevel.INFO', () => {
+    const logger = createStderrLogger()
+    expect(logger.getLevel()).toBe(LogLevel.INFO)
   })
 })
