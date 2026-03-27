@@ -3,43 +3,55 @@
 [![npm version](https://img.shields.io/npm/v/claude-slack-channel)](https://www.npmjs.com/package/claude-slack-channel)
 [![CI](https://github.com/sethbrasile/claude-slack-channel/actions/workflows/ci.yml/badge.svg)](https://github.com/sethbrasile/claude-slack-channel/actions/workflows/ci.yml)
 
-Claude Code Channel MCP server for Slack — bidirectional interactive bridge via Socket Mode.
+**Control Claude Code from Slack. Approve dangerous tool calls without opening a terminal.**
 
-> **Requires Bun runtime ([bun.sh](https://bun.sh)).**
-> Use `bunx claude-slack-channel` to run. **`npx` will NOT work** — the binary entry point is a `.ts` file that only the Bun runtime can execute.
+An MCP server that bridges Claude Code sessions to a Slack channel via Socket Mode. Claude receives commands from Slack, replies in threads, and posts permission prompts that operators approve or deny — all from their phone if they want to. No webhooks, no public URLs, no port forwarding.
+
+```
+You (Slack)          Socket Mode          Claude Code
+    |                    |                    |
+    |-- "deploy to      |                    |
+    |    staging" ------>|---> notification ->|
+    |                    |                    |-- runs tasks
+    |                    |<-- permission req -|
+    |<-- "Allow rm -rf   |                    |
+    |    node_modules?"  |                    |
+    |-- "yes a1b2c" --->|---> verdict ------>|
+    |                    |                    |-- continues
+    |<-- "Done. Deployed |<--- reply --------|
+    |    to staging."    |                    |
+```
 
 ---
 
-## What this is
+## Why this exists
 
-`claude-slack-channel` is a Claude Code MCP server that bridges your Claude Code sessions to a Slack channel via Socket Mode. It is bidirectional: Claude receives commands from Slack, can reply to Slack, and operators can approve or deny dangerous tool calls from Slack without ever opening a terminal. Socket Mode means no public URL, no webhook setup, and no port forwarding — it works through NAT and firewalls out of the box.
+Claude Code can run unattended — but sometimes it needs a human to approve a dangerous tool call. Without a channel server, that means sitting in front of a terminal. With `claude-slack-channel`, you start a job, walk away, and approve permissions from Slack when they come in.
+
+**Key differentiator:** The permission relay. Other Slack bridges forward messages, but this one also relays Claude's permission requests so you can approve `rm`, `git push`, file writes, and other sensitive operations from Slack.
 
 ---
 
 ## Quick start
 
-### 1. Install Bun
+> **Requires [Bun](https://bun.sh).** Use `bunx` to run. `npx` will not work — the entry point is TypeScript executed directly by Bun.
 
-Follow the instructions at [bun.sh](https://bun.sh) to install Bun on your system.
+### 1. Create a Slack app
 
-### 2. Create a Slack app
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) > **Create New App** > **From a manifest**
+2. Paste [`slack-app-manifest.yaml`](./slack-app-manifest.yaml) into the YAML tab
+3. Install the app to your workspace
 
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App**
-2. Select **From a manifest**
-3. Choose your workspace
-4. Paste the contents of [`slack-app-manifest.yaml`](./slack-app-manifest.yaml) from this repo into the YAML tab
-5. Click **Create**, then install the app to your workspace
+### 2. Grab your credentials
 
-### 3. Get your tokens and IDs
+| What | Where to find it |
+|------|-----------------|
+| Bot token (`xoxb-...`) | OAuth & Permissions > Bot User OAuth Token |
+| App token (`xapp-...`) | Basic Information > App-Level Tokens > create with `connections:write` |
+| Channel ID (`C0...`) | Right-click channel > Copy link > last segment of URL |
+| Your user ID (`U0...`) | Click your profile > ... > Copy member ID |
 
-- **Bot token** — OAuth & Permissions > Bot User OAuth Token (starts `xoxb-`)
-- **App-level token** — Basic Information > App-Level Tokens > Create token with `connections:write` scope (starts `xapp-`)
-- **Channel ID** — Right-click the target Slack channel > Copy link; the ID is the `C0XXXXXXXXX` segment at the end of the URL
-- **Your user ID** — Click your profile > `...` menu > Copy member ID (format: `U0XXXXXXXXX` or `W0XXXXXXXXX`)
-
-### 4. Add to `.mcp.json`
-
-Create or edit `.mcp.json` in your project directory:
+### 3. Add to `.mcp.json`
 
 ```json
 {
@@ -49,8 +61,8 @@ Create or edit `.mcp.json` in your project directory:
       "args": ["claude-slack-channel"],
       "env": {
         "SLACK_CHANNEL_ID": "C0XXXXXXXXX",
-        "SLACK_BOT_TOKEN": "xoxb-your-bot-token-here",
-        "SLACK_APP_TOKEN": "xapp-your-app-token-here",
+        "SLACK_BOT_TOKEN": "xoxb-your-bot-token",
+        "SLACK_APP_TOKEN": "xapp-your-app-token",
         "ALLOWED_USER_IDS": "U0XXXXXXXXX"
       }
     }
@@ -58,13 +70,11 @@ Create or edit `.mcp.json` in your project directory:
 }
 ```
 
-### 5. Invite the bot to your channel
-
-In the target Slack channel, type `/invite @Claude` and press Enter.
-
-### 6. Start Claude Code
+### 4. Invite the bot and start Claude
 
 ```bash
+# In Slack: /invite @YourBotName
+# In terminal:
 claude --dangerously-load-development-channels server:slack
 ```
 
@@ -72,72 +82,124 @@ claude --dangerously-load-development-channels server:slack
 
 ---
 
-## Configuration
+## What it looks like
 
-All configuration is via environment variables (set in `.mcp.json` `env` block or a `.env` file).
+### Sending a command
+
+Type a message in the Slack channel. Claude receives it and starts working.
+
+```
+You:     Fix the failing test in src/utils.ts
+Claude:  Looking at the test file now...
+         [thread] Found it — the mock was returning undefined instead of [].
+         Fixed and tests pass. Here's what I changed: ...
+```
+
+### Permission relay
+
+When Claude wants to do something sensitive, it asks in-thread:
+
+```
+Claude:  :lock: Permission Request `a1b2c`
+         Tool: bash
+         Description: Run shell command
+         ```
+         rm -rf node_modules && npm install
+         ```
+         Reply `yes a1b2c` or `no a1b2c`
+
+You:     yes a1b2c
+
+Claude:  Done — clean install complete, all 47 tests passing.
+```
+
+### New commands
+
+Send a new top-level message to start a fresh session. The old thread is abandoned automatically.
+
+---
+
+## Configuration
 
 | Variable | Required | Description |
 |---|---|---|
-| `SLACK_BOT_TOKEN` | Yes | Bot User OAuth Token. Must start with `xoxb-`. |
-| `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode. Must start with `xapp-`. |
-| `SLACK_CHANNEL_ID` | Yes | The Slack channel to listen on (e.g. `C0XXXXXXXXX`). |
-| `ALLOWED_USER_IDS` | Yes | Comma-separated list of Slack user IDs allowed to send commands. Each ID must start with `U0` or `W0`. |
-| `SERVER_NAME` | No | Identifier shown in Claude's context. Defaults to `slack`. Use a project-specific name when running multiple server instances on a shared machine. |
+| `SLACK_BOT_TOKEN` | Yes | Bot User OAuth Token (starts with `xoxb-`) |
+| `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode (starts with `xapp-`) |
+| `SLACK_CHANNEL_ID` | Yes | Channel to listen on (e.g. `C0XXXXXXXXX`) |
+| `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands |
+| `SERVER_NAME` | No | Identifier in Claude's context. Defaults to `slack`. Useful when running multiple instances. |
 
 ---
 
-## How it works: Threading
+## How it works
 
-The server uses a `ThreadTracker` state machine to manage conversation threads. When a top-level message arrives in the Slack channel, it is treated as a new command — any previous active thread is abandoned. When Claude replies, that reply creates a Slack thread. All follow-up questions from Claude in the same session go into the same thread. When you send a new top-level message in the channel, the old thread is abandoned and a fresh session begins.
+### Threading
 
----
+The server tracks one active thread at a time using a `ThreadTracker` state machine:
 
-## How it works: Permission relay
+- **Top-level message** = new command. Any previous thread is abandoned.
+- **Claude's first reply** creates a Slack thread. Follow-ups stay in that thread.
+- **Your reply in-thread** continues the conversation.
+- **New top-level message** = fresh start.
 
-When Claude requests a potentially dangerous tool call (e.g., running a shell command, writing files), an approval message appears in the active Slack thread. The message includes a unique permission ID. To approve the action, reply:
+### Permission relay
+
+1. Claude requests permission for a tool call (e.g., `bash`, `write`)
+2. The server formats the request and posts it in the active thread
+3. You reply `yes <id>` or `no <id>` (shorthands `y`/`n` work, case-insensitive)
+4. The verdict is forwarded to Claude — **not** echoed as a channel message
+5. Claude proceeds or aborts based on your response
+
+### Architecture
 
 ```
-yes abc123
+src/
+├── server.ts          # MCP server + CLI entry, wires everything together
+├── config.ts          # Zod env var validation + token scrubbing
+├── slack-client.ts    # Socket Mode, message filtering, dedup
+├── channel-bridge.ts  # Formats Slack messages as Channel notifications
+├── permission.ts      # Permission verdict parsing + request formatting
+├── threads.ts         # ThreadTracker state machine
+└── types.ts           # Shared interfaces
 ```
 
-To deny it:
-
-```
-no abc123
-```
-
-Single-letter shorthands `y` and `n` are also accepted. Replies are case-insensitive. Permission replies are handled silently — they do not trigger a new channel notification or start a new thread.
+Single process, no database, no external dependencies beyond Slack. The server connects via Socket Mode (WebSocket), so it works behind NAT and firewalls without any network configuration.
 
 ---
 
 ## Comparison with community implementation
 
-| Feature | This package | [jeremylongshore/claude-code-slack-channel](https://github.com/jeremylongshore/claude-code-slack-channel) |
+| | This package | [jeremylongshore/claude-code-slack-channel](https://github.com/jeremylongshore/claude-code-slack-channel) |
 |---|---|---|
-| Runtime | Bun / TypeScript | Bun / TypeScript |
-| Entry point | `bunx claude-slack-channel` | `bunx claude-code-slack-channel` |
-| User authentication | Static `ALLOWED_USER_IDS` allowlist | Pairing code flow (code exchanged in Slack DM) |
-| Permission relay | Yes — approve/deny tool calls from Slack | No |
-| Thread model | `ThreadTracker` state machine — top-level = new command, replies stay in thread | Simpler threading |
-| Multi-channel | No — one `SLACK_CHANNEL_ID` per instance by design | Yes — one instance can handle multiple channels |
-| Architecture | Single channel, single operator pipeline focus | More feature-rich, multi-channel |
+| **Permission relay** | Yes — approve/deny from Slack | No |
+| **User auth** | Static allowlist (`ALLOWED_USER_IDS`) | Pairing code flow |
+| **Multi-channel** | No — one channel per instance | Yes |
+| **Thread model** | State machine with abandon semantics | Simpler threading |
+| **Entry point** | `bunx claude-slack-channel` | `bunx claude-code-slack-channel` |
 
-**When to use this package:** You want a focused, automation-first setup where Claude runs unattended and operators approve sensitive actions from Slack. Static user allowlist is acceptable; you don't need multi-channel routing from a single process.
+**Use this package** if you want unattended automation with human-in-the-loop approvals and a static operator list is fine.
 
-**When to use jeremylongshore's implementation:** You want multi-channel support, a pairing code flow for operator onboarding, or a richer tool surface.
+**Use jeremylongshore's** if you need multi-channel routing or a pairing code flow for dynamic user onboarding.
 
 ---
 
 ## Examples
 
-- [Basic setup (single project)](./examples/basic-setup.md) — complete walkthrough from Slack app creation to first test message
-- [Multi-project VM setup](./examples/multi-project-vm.md) — running multiple independent server instances on a shared machine
+- [Basic setup](./examples/basic-setup.md) — single project, start to finish
+- [Multi-project VM](./examples/multi-project-vm.md) — multiple server instances on a shared machine
 
 ---
 
 ## Development
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, test commands, and PR process.
+```bash
+bun install
+bun test              # 64 tests
+bunx tsc --noEmit     # typecheck
+bunx biome check .    # lint
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full dev setup and PR process.
 
 ---
 
