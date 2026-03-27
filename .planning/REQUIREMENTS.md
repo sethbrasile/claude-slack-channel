@@ -70,9 +70,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### CI/CD
 
-- [ ] **CICD-01**: GitHub Actions CI runs typecheck, lint, and test with coverage on push/PR
-- [ ] **CICD-02**: Release workflow publishes to npm with provenance attestation on `v*` tags
-- [ ] **CICD-03**: Release workflow creates GitHub Release with auto-generated notes
+- [x] **CICD-01**: GitHub Actions CI runs typecheck, lint, and test with coverage on push/PR
+- [x] **CICD-02**: Release workflow publishes to npm with provenance attestation on `v*` tags
+- [x] **CICD-03**: Release workflow creates GitHub Release with auto-generated notes
 
 ### Documentation & Packaging
 
@@ -164,9 +164,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-08 | Phase 3 | Complete |
 | TEST-09 | Phase 3 | Complete |
 | TEST-10 | Phase 3 | Complete |
-| CICD-01 | Phase 3 | Pending |
-| CICD-02 | Phase 3 | Pending |
-| CICD-03 | Phase 3 | Pending |
+| CICD-01 | Phase 3 | Complete |
+| CICD-02 | Phase 3 | Complete |
+| CICD-03 | Phase 3 | Complete |
 | DOCS-01 | Phase 4 | Pending |
 | DOCS-02 | Phase 4 | Pending |
 | DOCS-03 | Phase 4 | Pending |
