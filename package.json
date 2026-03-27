@@ -16,7 +16,7 @@
     "typecheck": "bunx tsc --noEmit",
     "lint": "bunx biome check .",
     "lint:fix": "bunx biome check --write .",
-    "prepublishOnly": "bunx tsc --noEmit && bun test"
+    "prepublishOnly": "bunx biome check . && bunx tsc --noEmit && bun test"
   },
   "files": [
     "src",
