@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-26T00:00:00.000Z"
-last_activity: 2026-03-26 — Phase 2 Plan 01 complete; ThreadTracker + formatInboundNotification implemented
+status: executing
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-27T02:28:37.075Z"
+last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
   percent: 50
 ---
 
@@ -53,6 +53,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01-foundation P01 | 4 | 2 tasks | 10 files |
 | Phase 01-foundation P02 | 25 | 2 tasks | 4 files |
 | Phase 02 P01 | 12 | 2 tasks | 4 files |
+| Phase 02-message-flow-permission-relay P02 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,10 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: createSlackClient start() wrapped in async arrow to coerce Promise<AppsConnectionsOpenResponse> to Promise<void>
 - [Phase 02-01]: ChannelNotificationParams.meta.thread_ts absent (key not present) when no thread — avoids protocol noise
 - [Phase 02-01]: Biome organizeImports requires type imports before value imports within same module path
+- [Phase 02-message-flow-permission-relay]: createSlackClient returns { socketMode, web } — caller controls lifecycle and owns web for outbound calls
+- [Phase 02-message-flow-permission-relay]: Permission verdict mutual exclusivity enforced via early return in onMessage — not forwarded as channel notification
+- [Phase 02-message-flow-permission-relay]: server.notification() params require double cast (as unknown as Record<string, unknown>) — PermissionVerdict lacks index signature
+- [Phase 02-message-flow-permission-relay]: ThreadTracker NOT anchored in permission handler — stays bound to command thread so yes/no classifies as thread_reply
 
 ### Pending Todos
 
@@ -83,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T00:00:00.000Z
-Stopped at: Completed 02-01-PLAN.md
-Resume file: .planning/phases/02-message-flow-permission-relay/02-02-PLAN.md
+Last session: 2026-03-27T02:28:37.068Z
+Stopped at: Completed 02-02-PLAN.md
+Resume file: None

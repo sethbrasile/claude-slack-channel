@@ -13,7 +13,7 @@ Build a single-purpose MCP Channel server that bridges Claude Code to Slack via 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - MCP server scaffold + Slack Socket Mode connection with all transport safety invariants (completed 2026-03-27)
-- [ ] **Phase 2: Message Flow + Permission Relay** - Channel bridge, thread tracker, and the permission relay that defines the project
+- [x] **Phase 2: Message Flow + Permission Relay** - Channel bridge, thread tracker, and the permission relay that defines the project (completed 2026-03-27)
 - [ ] **Phase 3: Testing + CI** - Full unit test coverage on all pure functions and GitHub Actions CI pipeline
 - [ ] **Phase 4: Package + Documentation** - npm-publishable package, Slack app manifest, README, and community docs
 
@@ -91,6 +91,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-27 |
-| 2. Message Flow + Permission Relay | 1/2 | In Progress|  |
+| 2. Message Flow + Permission Relay | 2/2 | Complete   | 2026-03-27 |
 | 3. Testing + CI | 0/2 | Not started | - |
 | 4. Package + Documentation | 0/2 | Not started | - |

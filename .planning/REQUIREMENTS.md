@@ -31,15 +31,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **BRDG-01**: Inbound Slack messages are formatted as `notifications/claude/channel` with content, source, and meta fields
 - [x] **BRDG-02**: Meta keys use underscores only (hyphens silently dropped by protocol)
-- [ ] **BRDG-03**: Outbound `reply` tool posts messages to Slack and returns `{ content: [{ type: 'text', text: 'sent' }] }`
+- [x] **BRDG-03**: Outbound `reply` tool posts messages to Slack and returns `{ content: [{ type: 'text', text: 'sent' }] }`
 
 ### Permission Relay
 
-- [ ] **PERM-01**: Server receives `notifications/claude/channel/permission_request` and formats readable Slack message with request ID, tool name, description, and input preview
-- [ ] **PERM-02**: Server parses `yes/no {5-char-id}` replies as permission verdicts (case insensitive, y/n shorthand)
-- [ ] **PERM-03**: Permission verdicts are sent as `notifications/claude/channel/permission` and NOT forwarded as channel messages (mutual exclusivity)
-- [ ] **PERM-04**: Permission prompts are posted in the active thread (falls back to top-level if no active thread)
-- [ ] **PERM-05**: Permission request formatting sanitizes triple backticks and strips Slack broadcast mentions
+- [x] **PERM-01**: Server receives `notifications/claude/channel/permission_request` and formats readable Slack message with request ID, tool name, description, and input preview
+- [x] **PERM-02**: Server parses `yes/no {5-char-id}` replies as permission verdicts (case insensitive, y/n shorthand)
+- [x] **PERM-03**: Permission verdicts are sent as `notifications/claude/channel/permission` and NOT forwarded as channel messages (mutual exclusivity)
+- [x] **PERM-04**: Permission prompts are posted in the active thread (falls back to top-level if no active thread)
+- [x] **PERM-05**: Permission request formatting sanitizes triple backticks and strips Slack broadcast mentions
 
 ### Thread Management
 
@@ -145,12 +145,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-05 | Phase 1 | Complete |
 | BRDG-01 | Phase 2 | Complete |
 | BRDG-02 | Phase 2 | Complete |
-| BRDG-03 | Phase 2 | Pending |
-| PERM-01 | Phase 2 | Pending |
-| PERM-02 | Phase 2 | Pending |
-| PERM-03 | Phase 2 | Pending |
-| PERM-04 | Phase 2 | Pending |
-| PERM-05 | Phase 2 | Pending |
+| BRDG-03 | Phase 2 | Complete |
+| PERM-01 | Phase 2 | Complete |
+| PERM-02 | Phase 2 | Complete |
+| PERM-03 | Phase 2 | Complete |
+| PERM-04 | Phase 2 | Complete |
+| PERM-05 | Phase 2 | Complete |
 | THRD-01 | Phase 2 | Complete |
 | THRD-02 | Phase 2 | Complete |
 | THRD-03 | Phase 2 | Complete |
