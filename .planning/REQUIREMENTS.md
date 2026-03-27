@@ -76,14 +76,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Documentation & Packaging
 
-- [ ] **DOCS-01**: README covers quick start, configuration, threading, permission relay, and comparison with community implementation
+- [x] **DOCS-01**: README covers quick start, configuration, threading, permission relay, and comparison with community implementation
 - [x] **DOCS-02**: Slack app manifest (`slack-app-manifest.yaml`) ships in repo for reproducible setup
 - [x] **DOCS-03**: `.env.example` documents all required and optional env vars
-- [ ] **DOCS-04**: CONTRIBUTING.md covers dev setup, testing, linting, and PR process
-- [ ] **DOCS-05**: CHANGELOG.md initialized with Keep a Changelog format
-- [ ] **DOCS-06**: `examples/basic-setup.md` walks through single-project setup
-- [ ] **DOCS-07**: `examples/multi-project-vm.md` covers multi-channel reference architecture
-- [ ] **DOCS-08**: Bug report issue template with version fields and token redaction reminder
+- [x] **DOCS-04**: CONTRIBUTING.md covers dev setup, testing, linting, and PR process
+- [x] **DOCS-05**: CHANGELOG.md initialized with Keep a Changelog format
+- [x] **DOCS-06**: `examples/basic-setup.md` walks through single-project setup
+- [x] **DOCS-07**: `examples/multi-project-vm.md` covers multi-channel reference architecture
+- [x] **DOCS-08**: Bug report issue template with version fields and token redaction reminder
 - [x] **DOCS-09**: MIT LICENSE file included
 - [x] **DOCS-10**: `package.json` configured with `bin`, `files`, `engines`, and npm publish scripts
 
@@ -167,14 +167,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CICD-01 | Phase 3 | Complete |
 | CICD-02 | Phase 3 | Complete |
 | CICD-03 | Phase 3 | Complete |
-| DOCS-01 | Phase 4 | Pending |
+| DOCS-01 | Phase 4 | Complete |
 | DOCS-02 | Phase 4 | Complete |
 | DOCS-03 | Phase 4 | Complete |
-| DOCS-04 | Phase 4 | Pending |
-| DOCS-05 | Phase 4 | Pending |
-| DOCS-06 | Phase 4 | Pending |
-| DOCS-07 | Phase 4 | Pending |
-| DOCS-08 | Phase 4 | Pending |
+| DOCS-04 | Phase 4 | Complete |
+| DOCS-05 | Phase 4 | Complete |
+| DOCS-06 | Phase 4 | Complete |
+| DOCS-07 | Phase 4 | Complete |
+| DOCS-08 | Phase 4 | Complete |
 | DOCS-09 | Phase 4 | Complete |
 | DOCS-10 | Phase 4 | Complete |
 
