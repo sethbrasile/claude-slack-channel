@@ -57,7 +57,7 @@
       "name": "Test Surface Mismatch",
       "firstSeen": "2026-03-27",
       "reviews": ["2026-03-27-deep-review.md"],
-      "status": "open"
+      "status": "fix-in-progress"
     }
   }
 }

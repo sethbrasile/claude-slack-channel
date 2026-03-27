@@ -67,6 +67,7 @@ User elected to fix all 4 groupings as voluntary tech-debt.
 ## Current Position
 
 Round: 1
-Step: wave 2 complete — all phases complete
+Step: shippable
+Source review: .planning/reviews/2026-03-27-deep-review.md
 Completed: Phase 8 (CI/CD Polish) — 2026-03-27, Phase 5 (Testability & Dead Code Cleanup) — 2026-03-27, Phase 6 (Shutdown & Lifecycle Hardening) — 2026-03-27, Phase 7 (Config & Security Tightening) — 2026-03-27
-Next: Quality cycle complete
+Next: User decision — close cycle, review findings, another round, or abandon
