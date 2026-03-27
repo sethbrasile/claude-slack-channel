@@ -16,6 +16,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Message Flow + Permission Relay** - Channel bridge, thread tracker, and the permission relay that defines the project (completed 2026-03-27)
 - [x] **Phase 3: Testing + CI** - Full unit test coverage on all pure functions and GitHub Actions CI pipeline (completed 2026-03-27)
 - [x] **Phase 4: Package + Documentation** - npm-publishable package, Slack app manifest, README, and community docs (completed 2026-03-27)
+- [ ] **Phase 5: Testability & Dead Code Cleanup** - Align test surface with runtime surface, remove dead code, add missing test coverage (QC fix)
+- [ ] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix)
+- [ ] **Phase 7: Config & Security Tightening** - Close validation gap and defense-in-depth items (QC fix)
+- [ ] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix)
 
 ## Phase Details
 
@@ -83,6 +87,62 @@ Plans:
 - [ ] 04-01-PLAN.md — Package config: package.json publishConfig, slack-app-manifest.yaml, .env.example, MIT LICENSE (DOCS-10, DOCS-02, DOCS-03, DOCS-09)
 - [ ] 04-02-PLAN.md — Community docs: README, CONTRIBUTING.md, CHANGELOG.md, examples/, issue template (DOCS-01, DOCS-04, DOCS-05, DOCS-06, DOCS-07, DOCS-08)
 
+### Phase 5: Testability & Dead Code Cleanup
+**Goal**: Align the test surface with the runtime surface so CI coverage reflects real code paths. Remove dead code and add missing test cases.
+**Depends on**: Phase 4
+**Requirements**: Deep-review findings H1, M2, M3, M9, M10, L5, L6, L8, L11
+**Success Criteria** (what must be TRUE):
+  1. `createServer()` accepts injected `web` and `tracker` dependencies and registers the `CallToolRequestSchema` handler internally — library consumers get a fully functional server
+  2. `isDuplicate()` function and its tests are removed from `slack-client.ts` (dead code)
+  3. The reply tool handler (unknown tool rejection, Zod validation, mention stripping, start_thread branching) has unit tests covering all branches
+  4. `safeErrorMessage` tests cover `xoxp-` and `xoxa-` token patterns in addition to existing xoxb-/xapp-
+  5. Edge case tests added: whitespace-only ALLOWED_USER_IDS, classifyMessage(''), formatInboundNotification with empty text, formatPermissionRequest with absent input_preview
+  6. Logger tests verify message content (not just `toHaveBeenCalled`), and setLevel/setName/getLevel have basic coverage
+  7. `<!everyone>` is explicitly tested in permission mention stripping
+  8. SDK private property access is acknowledged in a describe-block comment in server.test.ts
+  9. `bun test` passes with all new tests
+**Plans**: 0 plans (pending)
+
+### Phase 6: Shutdown & Lifecycle Hardening
+**Goal**: Make shutdown idempotent and add diagnostic logging for edge cases.
+**Depends on**: Phase 5 (server.ts restructure must be stable first)
+**Requirements**: Deep-review findings M1, L1
+**Success Criteria** (what must be TRUE):
+  1. A `shutdownInitiated` boolean guard prevents double invocation of `shutdown()` — second signal is a no-op with a log line
+  2. `messageQueue` reference is captured after `socketMode.disconnect()` resolves, not read from the live variable
+  3. Events with missing/empty `ts` log `[slack-client] event without ts` to stderr before discarding
+  4. Empty-string `ts` does NOT pollute the `seenTs` dedup map
+  5. `bun test` passes
+**Plans**: 0 plans (pending)
+
+### Phase 7: Config & Security Tightening
+**Goal**: Close the SLACK_CHANNEL_ID validation gap and apply defense-in-depth improvements.
+**Depends on**: Phase 5 (server.ts restructure must be stable first)
+**Requirements**: Deep-review findings M4, M5, M6, M8, L9
+**Success Criteria** (what must be TRUE):
+  1. `SLACK_CHANNEL_ID` is validated with `.regex(/^[CG][A-Z0-9]+$/)` in the Zod config schema
+  2. `createStderrLogger` applies `safeErrorMessage` to the `error` method's output before passing to `console.error`
+  3. `PERMISSION_ID_RE` (pre-built anchored regex) is exported from `permission.ts` and imported in `server.ts` — no inline `new RegExp()` construction
+  4. The `as unknown as Record<string, unknown>` double casts in `server.ts` are simplified to direct casts with a comment explaining the SDK constraint
+  5. `safeErrorMessage` regex suffix changed from `[\w-]+` to `[^\s]+` for multi-line token coverage
+  6. `bun test` passes, `bunx tsc --noEmit` exits 0
+**Plans**: 0 plans (pending)
+
+### Phase 8: CI/CD Polish
+**Goal**: Tighten release safety, reduce CI waste, and add open-source hygiene features.
+**Depends on**: None (independent of source code changes)
+**Requirements**: Deep-review findings H2, M7, M11, L2, L3, L4, L10, L12
+**Success Criteria** (what must be TRUE):
+  1. Release workflow validates git tag matches `package.json` version before `npm publish`
+  2. CI push trigger changed to `branches: ["main"]` — no more double-triggers on PR branches
+  3. GitHub Actions versions pinned to specific releases (not floating major tags)
+  4. `.github/dependabot.yml` exists with entries for npm and github-actions ecosystems
+  5. `prepublishOnly` script includes `bunx biome check .` lint step
+  6. `slack-app-manifest.yaml` has a comment noting DM channels are unsupported
+  7. Release workflow runs `bun test --coverage` (matching CI)
+  8. CI workflow includes a security audit step
+**Plans**: 0 plans (pending)
+
 ## Progress
 
 **Execution Order:**
@@ -94,3 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Message Flow + Permission Relay | 2/2 | Complete    | 2026-03-27 |
 | 3. Testing + CI | 2/2 | Complete   | 2026-03-27 |
 | 4. Package + Documentation | 2/2 | Complete   | 2026-03-27 |
+| 5. Testability & Dead Code Cleanup | 0/0 | Pending | — |
+| 6. Shutdown & Lifecycle Hardening | 0/0 | Pending | — |
+| 7. Config & Security Tightening | 0/0 | Pending | — |
+| 8. CI/CD Polish | 0/0 | Pending | — |
