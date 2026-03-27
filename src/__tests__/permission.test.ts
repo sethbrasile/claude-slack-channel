@@ -150,8 +150,8 @@ describe('formatPermissionBlocks', () => {
     const { blocks } = formatPermissionBlocks(req)
     const actions = blocks[1] as { elements: { action_id: string; style: string }[] }
     expect(actions.elements).toHaveLength(2)
-    const approve = actions.elements[0]!
-    const deny = actions.elements[1]!
+    const approve = actions.elements[0]
+    const deny = actions.elements[1]
     expect(approve.action_id).toBe('permission_approve_abcde')
     expect(approve.style).toBe('primary')
     expect(deny.action_id).toBe('permission_deny_abcde')
@@ -161,7 +161,7 @@ describe('formatPermissionBlocks', () => {
   it('includes text fallback in context block', () => {
     const { blocks } = formatPermissionBlocks(req)
     const context = blocks[2] as { elements: { text: string }[] }
-    const el = context.elements[0]!
+    const el = context.elements[0]
     expect(el.text).toContain('yes abcde')
     expect(el.text).toContain('no abcde')
   })
