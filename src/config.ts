@@ -4,7 +4,13 @@ import type { ChannelConfig } from './types.ts'
 const SLACK_USER_ID_RE = /^[UW][A-Z0-9]+$/
 
 const ConfigSchema = z.object({
-  SLACK_CHANNEL_ID: z.string().min(1, 'SLACK_CHANNEL_ID is required'),
+  SLACK_CHANNEL_ID: z
+    .string()
+    .min(1, 'SLACK_CHANNEL_ID is required')
+    .regex(
+      /^[CG][A-Z0-9]+$/,
+      'SLACK_CHANNEL_ID must be a Slack channel/group ID (e.g. C0XXX or G0XXX)',
+    ),
   SLACK_BOT_TOKEN: z.string().startsWith('xoxb-', 'SLACK_BOT_TOKEN must start with xoxb-'),
   SLACK_APP_TOKEN: z.string().startsWith('xapp-', 'SLACK_APP_TOKEN must start with xapp-'),
   ALLOWED_USER_IDS: z
@@ -56,5 +62,5 @@ export function parseConfig(env: Record<string, string | undefined>): ChannelCon
 
 export function safeErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  return msg.replace(/x(?:ox[a-z]|app)-[\w-]+/g, '[REDACTED]')
+  return msg.replace(/x(?:ox[a-z]|app)-[^\s]+/g, '[REDACTED]')
 }
