@@ -17,6 +17,15 @@
       "file": "2026-03-26-deep-review-r2.md",
       "counts": { "critical": 0, "high": 1, "medium": 14, "low": 7 },
       "structuralPatterns": ["inconsistent-error-handling-depth"]
+    },
+    {
+      "date": "2026-03-27",
+      "type": "deep-review",
+      "mode": "pre-delivery",
+      "scope": "Full codebase (first code review)",
+      "file": "2026-03-27-deep-review.md",
+      "counts": { "critical": 0, "high": 2, "medium": 11, "low": 12 },
+      "structuralPatterns": ["test-surface-mismatch"]
     }
   ],
   "patterns": {
@@ -43,6 +52,12 @@
       "status": "resolved",
       "resolvedBy": "Round 2 fixes — WebClient logger, result.ok checks, permission handler try/catch, token scrubbing",
       "resolvedDate": "2026-03-26"
+    },
+    "test-surface-mismatch": {
+      "name": "Test Surface Mismatch",
+      "firstSeen": "2026-03-27",
+      "reviews": ["2026-03-27-deep-review.md"],
+      "status": "open"
     }
   }
 }
