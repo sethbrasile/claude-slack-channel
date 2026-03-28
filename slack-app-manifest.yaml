@@ -29,6 +29,10 @@ oauth_config:
       # SLACK_CHANNEL_ID must be a public channel (C...) or private channel (C...).
       # Configuring a DM channel ID will result in silent message loss.
       - chat:write        # post messages as the bot
+      # NOTE: channels:history and groups:history grant workspace-wide read access to
+      # message events in any channel the bot joins — not scoped to SLACK_CHANNEL_ID alone.
+      # The server filters by SLACK_CHANNEL_ID in code. Review before granting to
+      # shared workspaces with sensitive channels.
       - channels:history  # receive message events from public channels
       - groups:history    # receive message events from private channels
 
@@ -38,7 +42,8 @@ settings:
       - message.channels  # public channel messages
       - message.groups    # private channel messages
   interactivity:
-    is_enabled: true      # required for Approve/Deny buttons on permission requests
+    is_enabled: true      # required for Approve/Deny buttons; also required for Socket Mode
+                          # to receive interactive payload events (button clicks)
   socket_mode_enabled: true
   is_hosted: false
   token_rotation_enabled: false
