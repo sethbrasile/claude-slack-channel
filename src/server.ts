@@ -14,7 +14,7 @@ import {
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
-import { type InteractiveAction, createSlackClient } from './slack-client.ts'
+import { createSlackClient, type InteractiveAction } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig, PendingPermissionEntry, PermissionRequest } from './types.ts'
 
