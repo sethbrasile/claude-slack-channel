@@ -74,6 +74,39 @@ describe('createStderrLogger', () => {
     spy.mockRestore()
   })
 
+  it('scrubs xoxb- tokens from debug messages', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const logger = createStderrLogger()
+    logger.debug('token: xoxb-123-abc')
+    // biome-ignore lint/style/noNonNullAssertion: spy is called exactly once above
+    const args = spy.mock.calls[0]!
+    expect(args[0]).toBe('[slack:debug]')
+    expect(String(args[1])).not.toContain('xoxb-')
+    spy.mockRestore()
+  })
+
+  it('scrubs xoxp- tokens from info messages', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const logger = createStderrLogger()
+    logger.info('xoxp-456-def')
+    // biome-ignore lint/style/noNonNullAssertion: spy is called exactly once above
+    const args = spy.mock.calls[0]!
+    expect(args[0]).toBe('[slack:info]')
+    expect(String(args[1])).not.toContain('xoxp-')
+    spy.mockRestore()
+  })
+
+  it('scrubs xapp- tokens from warn messages', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const logger = createStderrLogger()
+    logger.warn('xapp-789-ghi')
+    // biome-ignore lint/style/noNonNullAssertion: spy is called exactly once above
+    const args = spy.mock.calls[0]!
+    expect(args[0]).toBe('[slack:warn]')
+    expect(String(args[1])).not.toContain('xapp-')
+    spy.mockRestore()
+  })
+
   it('setLevel does not throw', () => {
     const logger = createStderrLogger()
     expect(() => logger.setLevel(LogLevel.DEBUG)).not.toThrow()
