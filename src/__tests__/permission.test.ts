@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 import {
   formatPermissionBlocks,
   formatPermissionRequest,
@@ -200,6 +200,49 @@ describe('formatPermissionResult', () => {
     const { blocks } = formatPermissionResult(req, 'U12345', true)
     const types = blocks.map((b) => (b as { type: string }).type)
     expect(types).not.toContain('actions')
+  })
+})
+
+// L4 — userId validation
+describe('formatPermissionResult userId validation', () => {
+  it('logs warning for invalid userId format (does not throw)', () => {
+    const spy = spyOn(console, 'error').mockImplementation(() => {})
+    const req = {
+      request_id: 'abcde',
+      tool_name: 'bash',
+      description: 'run cmd',
+      input_preview: '',
+    }
+    formatPermissionResult(req, 'invalid-id', true)
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('invalid userId format'))
+    spy.mockRestore()
+  })
+})
+
+// L17 — formatPermissionBlocks with broadcast mentions in fields
+describe('formatPermissionBlocks mention stripping', () => {
+  it('strips <@U12345> user mention from tool_name (zero-width space replacement)', () => {
+    const req = {
+      request_id: 'abcde',
+      tool_name: '<@U12345> bash',
+      description: 'run cmd',
+      input_preview: '',
+    }
+    const { text } = formatPermissionBlocks(req)
+    expect(text).not.toContain('<@U12345>')
+    expect(text).toContain('<\u200b@U12345>')
+  })
+
+  it('strips <!subteam^ABC> broadcast from description (zero-width space replacement)', () => {
+    const req = {
+      request_id: 'abcde',
+      tool_name: 'bash',
+      description: '<!subteam^ABC> run cmd',
+      input_preview: '',
+    }
+    const { text } = formatPermissionBlocks(req)
+    expect(text).not.toContain('<!subteam^')
+    expect(text).toContain('<\u200b!subteam^')
   })
 })
 
