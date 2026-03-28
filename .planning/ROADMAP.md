@@ -236,7 +236,10 @@ Plans:
   5. Changelog has explanatory note about same-day dates, diff link footer, and audience scope for breaking changes
   6. Manifest scope breadth (workspace-wide) documented in a comment
   7. Interactivity section in manifest has Socket Mode comment
-**Plans**: 0 plans (pending)
+**Plans**: 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md — README opening + SERVER_NAME, CHANGELOG dates/links/qualifier, basic-setup button wording, manifest comments, tsconfig comment (M21, M22, M23, M24, L6, L13, L14)
 
 ### Phase 14: Test Coverage Gaps
 **Goal**: Cover remaining untested code paths and harden existing test assertions.
