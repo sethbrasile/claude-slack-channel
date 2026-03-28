@@ -290,4 +290,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 11. CI/CD Supply Chain Hardening | 2/2 | Complete    | 2026-03-28 |
 | 12. Documentation — Setup Flow & Consistency | 2/2 | Complete    | 2026-03-28 |
 | 13. Documentation — Content Polish | 0/0 | Pending | — |
-| 14. Test Coverage Gaps | 0/0 | Pending | — |
+| 14. Test Coverage Gaps | 1/2 | In Progress|  |

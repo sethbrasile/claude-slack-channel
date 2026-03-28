@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-28T23:26:22.104Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-28T23:26:33.069Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 14
@@ -65,6 +65,7 @@ Progress: [█████░░░░░] 50%
 | Phase 11-cicd-supply-chain-hardening P02 | 1 | 1 tasks | 2 files |
 | Phase 12-documentation-setup-flow-consistency P01 | 2 | 3 tasks | 1 files |
 | Phase 10-interactive-handler-hardening P01 | 6 | 2 tasks | 5 files |
+| Phase 14-test-coverage-gaps P01 | 65 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,10 @@ Recent decisions affecting current work:
 - [Phase 10-interactive-handler-hardening]: InteractiveBodySchema uses safeParse + stderr log on failure — invalid payloads rejected with diagnostic, not silently swallowed
 - [Phase 10-interactive-handler-hardening]: isDuplicateTs extracted as pure function with explicit seenTs + now params — matches validateEventTs/shouldProcessMessage testing seam pattern
 - [Phase 10-interactive-handler-hardening]: PENDING_PERMISSIONS_TTL_MS=10min, PENDING_PERMISSIONS_MAX_SIZE=100 — constants named for grep-ability; TTL sweep + oldest-eviction on every set()
+- [Phase 14-test-coverage-gaps]: isDuplicateTs exported as testing seam only — DEDUP_TTL_MS stays module-private
+- [Phase 14-test-coverage-gaps]: InteractiveBodySchema added as Rule 3 auto-fix — pre-written tests blocked module load
+- [Phase 14-test-coverage-gaps]: userId validation in formatPermissionResult logs warning but does not throw
+- [Phase 14-test-coverage-gaps]: 5-second forced-exit timer uses unref() so clean exit can proceed without waiting
 
 ### Pending Todos
 
@@ -124,6 +129,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T23:26:12.931Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-28T23:26:33.064Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
