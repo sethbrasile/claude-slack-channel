@@ -1,6 +1,7 @@
 import type { Logger } from '@slack/logger'
 import { LogLevel, SocketModeClient } from '@slack/socket-mode'
 import { WebClient } from '@slack/web-api'
+import { z } from 'zod'
 import { safeErrorMessage } from './config.ts'
 
 // ============================================================
@@ -42,6 +43,22 @@ export interface InteractiveAction {
 }
 
 export type InteractiveHandler = (action: InteractiveAction) => void | Promise<void>
+
+// ============================================================
+// Interactive payload schema — Zod validation for Slack button callbacks
+// ============================================================
+
+export const InteractiveBodySchema = z.object({
+  actions: z.array(z.object({ action_id: z.string() })).min(1),
+  user: z.object({ id: z.string() }),
+  channel: z.object({ id: z.string() }),
+  message: z.object({
+    ts: z.string(),
+    thread_ts: z.string().optional(),
+  }),
+})
+
+export type InteractiveBody = z.infer<typeof InteractiveBodySchema>
 
 // ============================================================
 // Pure filter function — injectable for testability
@@ -96,6 +113,9 @@ export function createStderrLogger(): Logger {
 // TTL for seen ts entries: 30 seconds
 const DEDUP_TTL_MS = 30_000
 
+// Upper-bound cap on seenTs map size — evicts oldest entry on overflow
+export const MAX_SEEN_TS = 10_000
+
 /**
  * Validates that a Slack event has a usable ts field.
  *
@@ -112,6 +132,34 @@ export function validateEventTs(ts: string | undefined): string | null {
     return null
   }
   return normalized
+}
+
+/**
+ * Deduplicates Slack event timestamps using a TTL map.
+ *
+ * Returns true if the given ts was already seen within the TTL window (duplicate).
+ * Returns false if ts is new or expired — and records it for future dedup.
+ *
+ * Side effects:
+ * - Sweeps expired entries from seenTs
+ * - Evicts the oldest entry if seenTs is at MAX_SEEN_TS capacity
+ * - Inserts (ts -> expiry) when not a duplicate
+ *
+ * Exported as a testing seam — matches the validateEventTs / shouldProcessMessage pattern.
+ */
+export function isDuplicateTs(seenTs: Map<string, number>, ts: string, now: number): boolean {
+  // TTL sweep — remove expired entries
+  for (const [key, expiry] of seenTs.entries()) {
+    if (now > expiry) seenTs.delete(key)
+  }
+  if (seenTs.has(ts)) return true
+  // Upper-bound cap: evict oldest entry if at capacity
+  if (seenTs.size >= MAX_SEEN_TS) {
+    const firstKey = seenTs.keys().next().value
+    if (firstKey !== undefined) seenTs.delete(firstKey)
+  }
+  seenTs.set(ts, now + DEDUP_TTL_MS)
+  return false
 }
 
 /**
@@ -162,15 +210,8 @@ export function createSlackClient(
 
       if (!shouldProcessMessage(event, filter)) return
 
-      // TTL dedup: expire old entries, then check/add current ts
-      const now = Date.now()
-      for (const [ts, expiry] of seenTs.entries()) {
-        if (now > expiry) seenTs.delete(ts)
-      }
-
       const ts = validateEventTs(event.ts)
-      if (ts === null || seenTs.has(ts)) return
-      seenTs.set(ts, now + DEDUP_TTL_MS)
+      if (ts === null || isDuplicateTs(seenTs, ts, Date.now())) return
 
       const msg: SlackMessage = {
         text: event.text ?? '',
@@ -195,12 +236,16 @@ export function createSlackClient(
           return
         }
 
-        const actions = body.actions as Array<{ action_id?: string }> | undefined
-        const user = body.user as { id?: string } | undefined
-        const channel = body.channel as { id?: string } | undefined
-        const message = body.message as { ts?: string; thread_ts?: string } | undefined
+        const parsed = InteractiveBodySchema.safeParse(body)
+        if (!parsed.success) {
+          console.error(
+            '[slack-client] interactive payload validation failed:',
+            parsed.error.message,
+          )
+          return
+        }
+        const { actions, user, channel, message } = parsed.data
 
-        if (!actions?.[0]?.action_id || !user?.id || !channel?.id || !message?.ts) return
         if (!filter.allowedUserIds.includes(user.id)) {
           console.error(
             `[slack-client] interactive action rejected: user ${user.id} not in allowlist`,
@@ -208,8 +253,11 @@ export function createSlackClient(
           return
         }
 
+        const firstAction = actions[0]
+        if (!firstAction) return
+
         await onInteractive({
-          action_id: actions[0].action_id,
+          action_id: firstAction.action_id,
           user: user.id,
           channel: channel.id,
           message_ts: message.ts,

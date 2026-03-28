@@ -1,6 +1,13 @@
 import { describe, expect, it, spyOn } from 'bun:test'
 import { LogLevel } from '@slack/logger'
-import { createStderrLogger, shouldProcessMessage, validateEventTs } from '../slack-client.ts'
+import {
+  createStderrLogger,
+  InteractiveBodySchema,
+  isDuplicateTs,
+  MAX_SEEN_TS,
+  shouldProcessMessage,
+  validateEventTs,
+} from '../slack-client.ts'
 
 const FILTER = {
   channelId: 'C123',
@@ -150,5 +157,106 @@ describe('validateEventTs', () => {
     // so seenTs.set() is never reached — empty-string ts cannot pollute the map.
     expect(validateEventTs(undefined)).toBeNull()
     expect(validateEventTs('')).toBeNull()
+  })
+})
+
+describe('isDuplicateTs', () => {
+  it('returns false on first call — not a duplicate', () => {
+    const seenTs = new Map<string, number>()
+    const now = Date.now()
+    expect(isDuplicateTs(seenTs, '123.456', now)).toBe(false)
+  })
+
+  it('returns true on second call within TTL — same ts is a duplicate', () => {
+    const seenTs = new Map<string, number>()
+    const now = Date.now()
+    isDuplicateTs(seenTs, '123.456', now)
+    expect(isDuplicateTs(seenTs, '123.456', now + 1000)).toBe(true)
+  })
+
+  it('returns false after TTL expires — expired ts is re-accepted', () => {
+    const seenTs = new Map<string, number>()
+    const now = Date.now()
+    isDuplicateTs(seenTs, '123.456', now)
+    // 31 seconds later — past the 30s TTL
+    expect(isDuplicateTs(seenTs, '123.456', now + 31_000)).toBe(false)
+  })
+
+  it('evicts oldest entry when seenTs.size === MAX_SEEN_TS before insert', () => {
+    const seenTs = new Map<string, number>()
+    const now = Date.now()
+    // Fill the map to capacity with entries that won't expire yet (TTL = 30s)
+    for (let i = 0; i < MAX_SEEN_TS; i++) {
+      seenTs.set(`ts.${i}`, now + 30_000)
+    }
+    // The oldest entry is 'ts.0' — first key in insertion order
+    expect(seenTs.has('ts.0')).toBe(true)
+    // Insert a new ts — should evict 'ts.0' to stay within cap
+    isDuplicateTs(seenTs, 'new.ts', now)
+    expect(seenTs.has('ts.0')).toBe(false)
+    expect(seenTs.has('new.ts')).toBe(true)
+    expect(seenTs.size).toBe(MAX_SEEN_TS)
+  })
+
+  it('MAX_SEEN_TS is exported and equals 10_000', () => {
+    expect(MAX_SEEN_TS).toBe(10_000)
+  })
+})
+
+describe('InteractiveBodySchema', () => {
+  const validBody = {
+    actions: [{ action_id: 'approve__req-123' }],
+    user: { id: 'U123' },
+    channel: { id: 'C123' },
+    message: { ts: '1234567890.123456' },
+  }
+
+  it('Test 1: valid body passes safeParse — returns success=true with typed data', () => {
+    const result = InteractiveBodySchema.safeParse(validBody)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.actions[0]?.action_id).toBe('approve__req-123')
+      expect(result.data.user.id).toBe('U123')
+      expect(result.data.channel.id).toBe('C123')
+      expect(result.data.message.ts).toBe('1234567890.123456')
+    }
+  })
+
+  it('Test 2: body missing `actions` array fails safeParse — returns success=false', () => {
+    const { actions: _actions, ...bodyWithoutActions } = validBody
+    const result = InteractiveBodySchema.safeParse(bodyWithoutActions)
+    expect(result.success).toBe(false)
+  })
+
+  it('Test 3: body with empty `actions` array fails (min(1) constraint)', () => {
+    const result = InteractiveBodySchema.safeParse({ ...validBody, actions: [] })
+    expect(result.success).toBe(false)
+  })
+
+  it('Test 4: body missing `user.id` fails safeParse', () => {
+    const result = InteractiveBodySchema.safeParse({ ...validBody, user: {} })
+    expect(result.success).toBe(false)
+  })
+
+  it('Test 5: body missing `channel.id` fails safeParse', () => {
+    const result = InteractiveBodySchema.safeParse({ ...validBody, channel: {} })
+    expect(result.success).toBe(false)
+  })
+
+  it('Test 6: body missing `message.ts` fails safeParse', () => {
+    const result = InteractiveBodySchema.safeParse({ ...validBody, message: {} })
+    expect(result.success).toBe(false)
+  })
+
+  it('Test 7: body with optional `message.thread_ts` present passes and preserves it', () => {
+    const bodyWithThread = {
+      ...validBody,
+      message: { ts: '1234567890.123456', thread_ts: '1234567890.000001' },
+    }
+    const result = InteractiveBodySchema.safeParse(bodyWithThread)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.message.thread_ts).toBe('1234567890.000001')
+    }
   })
 })
