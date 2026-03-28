@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { PermissionRequest, PermissionVerdict } from './types.ts'
 
 // Protocol spec: request_id is 5 lowercase letters from a-z excluding 'l'
@@ -29,6 +30,11 @@ function stripMentions(s: string): string {
   return s.replaceAll('<!', '<\u200b!')
 }
 
+/**
+ * Formats a permission request as plain text (Slack mrkdwn).
+ * Exported for testability — only called within permission.ts by formatPermissionBlocks
+ * and formatPermissionResult.
+ */
 export function formatPermissionRequest(req: PermissionRequest): string {
   return [
     `:lock: *Permission Request* \`${req.request_id}\``,
@@ -162,3 +168,15 @@ export function parseButtonAction(actionId: string): PermissionVerdict | null {
     behavior: match[1] === 'approve' ? 'allow' : 'deny',
   }
 }
+
+// Exported for use in server.ts wireHandlers and CLI block.
+// Validates the notifications/claude/channel/permission_request notification shape.
+export const PermissionRequestSchema = z.object({
+  method: z.literal('notifications/claude/channel/permission_request'),
+  params: z.object({
+    request_id: z.string().regex(PERMISSION_ID_RE),
+    tool_name: z.string(),
+    description: z.string(),
+    input_preview: z.string().optional().default(''),
+  }),
+})
