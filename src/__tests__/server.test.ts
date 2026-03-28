@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test'
 import type { WebClient } from '@slack/web-api'
 import { createServer, makeReplyHandler, wireHandlers } from '../server.ts'
 import type { ThreadTracker } from '../threads.ts'
-import type { ChannelConfig, PermissionRequest } from '../types.ts'
+import type { ChannelConfig, PendingPermissionEntry } from '../types.ts'
 
 const TEST_CONFIG = {
   channelId: 'C0123456789',
@@ -377,7 +377,7 @@ describe('wireHandlers — handler registration (M2)', () => {
       },
     }
     const mockWeb = { chat: { postMessage: mockPostMessage } }
-    const pendingPermissions = new Map<string, { params: PermissionRequest }>()
+    const pendingPermissions = new Map<string, PendingPermissionEntry>()
     const server = createServer(TEST_CONFIG as ChannelConfig)
     wireHandlers(
       server,

@@ -13,6 +13,11 @@ export interface PermissionRequest {
   input_preview: string
 }
 
+export interface PendingPermissionEntry {
+  params: PermissionRequest
+  expiresAt: number
+}
+
 export interface PermissionVerdict {
   request_id: string
   behavior: 'allow' | 'deny'
