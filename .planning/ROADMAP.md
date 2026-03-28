@@ -264,7 +264,11 @@ Plans:
   16. `safeErrorMessage` tested with mid-word token
   17. `createServer` without deps tested for tool/call handler boundary
   18. `bun test` passes
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Source fixes: extract isDuplicateTs, add seenTs cap, explicit empty-string guard, expand broadcast stripping, userId validation, forced-exit timeout, remove examples from npm files (L2, L3, L4, L9, L11, M4, M12)
+- [ ] 14-02-PLAN.md — Tests: isDuplicateTs TTL+cap, SDK guard assertions, ok:false isError, <@ stripping, replacement char, userId warning, formatPermissionBlocks, ALLOWED_USER_IDS trim, mid-word token, no-deps boundary (M4, M10, M11, M12, L2, L3, L4, L5, L9, L10, L15, L16, L17, L18, L19, L20)
 
 ## Progress
 
