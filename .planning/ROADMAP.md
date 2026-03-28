@@ -160,7 +160,11 @@ Plans:
   4. `pendingPermissions` uses the `PermissionRequest` type from `types.ts`
   5. `formatPermissionRequest` export scope is reviewed (unexport if only used internally)
   6. `bun test` passes, `bunx tsc --noEmit` exits 0
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Move PermissionRequestSchema to permission.ts, fix pendingPermissions type, add formatPermissionRequest testability comment (M3, L7, L8)
+- [ ] 09-02-PLAN.md — Extract makeReplyHandler, wireHandlers; deduplicate reply handler; wire both paths; add unit tests (H2, M2, M14)
 
 ### Phase 10: Interactive Handler Hardening
 **Goal**: Eliminate the interactive button race condition, add Zod validation for interactive payloads, route interactive callbacks through messageQueue for shutdown drain, and add TTL to pendingPermissions. Absorbs Phase 6 (shutdown lifecycle) findings.
