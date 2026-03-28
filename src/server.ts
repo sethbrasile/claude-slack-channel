@@ -16,7 +16,7 @@ import {
 } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig, PermissionRequest } from './types.ts'
+import type { ChannelConfig, PendingPermissionEntry, PermissionRequest } from './types.ts'
 
 // Module-level schema — used in makeReplyHandler (library path) and CLI block via wireHandlers
 const ReplyArgsSchema = z.object({
@@ -24,6 +24,10 @@ const ReplyArgsSchema = z.object({
   thread_ts: z.string().optional(),
   start_thread: z.boolean().optional(),
 })
+
+// TTL and size cap for pending permission entries
+const PENDING_PERMISSIONS_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const PENDING_PERMISSIONS_MAX_SIZE = 100
 
 /**
  * Factory for the reply tool handler. Returns the handler function that processes
@@ -50,9 +54,9 @@ export function makeReplyHandler(web: WebClient, tracker: ThreadTracker, config:
       }
     }
     const args = parsed.data
-    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
-    // to prevent Claude's replies from triggering workspace-wide notifications
-    const text = args.text.replaceAll('<!', '<\u200b!')
+    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>) AND
+    // user mentions (<@U12345>) to prevent notifications and mention pings
+    const text = args.text.replaceAll('<!', '<\u200b!').replaceAll('<@', '<\u200b@')
     // Explicit thread_ts takes priority; otherwise fall back to the active
     // thread so follow-up replies stay threaded automatically.
     // start_thread omits thread_ts so the message posts top-level.
@@ -99,12 +103,26 @@ function makePermissionHandler(
   web: WebClient,
   tracker: ThreadTracker,
   config: ChannelConfig,
-  pendingPermissions: Map<string, { params: PermissionRequest }>,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
 ) {
   return async ({ params }: { params: PermissionRequest }): Promise<void> => {
     const { text, blocks } = formatPermissionBlocks(params)
+    // TTL sweep: expire stale entries before inserting new one
+    const now = Date.now()
+    for (const [id, entry] of pendingPermissions.entries()) {
+      if (now > entry.expiresAt) pendingPermissions.delete(id)
+    }
+    // Size cap: evict oldest when full
+    if (pendingPermissions.size >= PENDING_PERMISSIONS_MAX_SIZE) {
+      console.error('[permission] pendingPermissions at capacity, dropping oldest entry')
+      const oldest = pendingPermissions.keys().next().value
+      if (oldest) pendingPermissions.delete(oldest)
+    }
     // Store the request so we can update the message after a button click
-    pendingPermissions.set(params.request_id, { params })
+    pendingPermissions.set(params.request_id, {
+      params,
+      expiresAt: now + PENDING_PERMISSIONS_TTL_MS,
+    })
     // Post the permission prompt IN the active thread so it appears inline
     // with the command that triggered it. Falls back to top-level if there
     // is no active thread (e.g. fire-and-forget command with no question phase).
@@ -145,7 +163,7 @@ export function wireHandlers(
   web: WebClient,
   tracker: ThreadTracker,
   config: ChannelConfig,
-  pendingPermissions: Map<string, { params: PermissionRequest }>,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
 ): void {
   server.setRequestHandler(CallToolRequestSchema, makeReplyHandler(web, tracker, config))
   server.setNotificationHandler(
@@ -248,7 +266,7 @@ if (import.meta.main) {
 
   // Track pending permission requests so we can update the Slack message
   // with the result after a button click. Keyed by request_id.
-  const pendingPermissions = new Map<string, { params: PermissionRequest }>()
+  const pendingPermissions = new Map<string, PendingPermissionEntry>()
 
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
@@ -371,10 +389,18 @@ if (import.meta.main) {
     } catch (err) {
       console.error('[shutdown] messageQueue drain failed:', safeErrorMessage(err))
     }
+    // Forced-exit safety: if server.close() hangs, exit after 5 seconds
+    const forceExitTimer = setTimeout(() => {
+      console.error('[shutdown] forced exit after timeout')
+      process.exit(1)
+    }, 5000)
+    forceExitTimer.unref() // allow clean exit to proceed without waiting
     try {
       await server.close()
     } catch (err) {
       console.error('[shutdown] server.close failed:', safeErrorMessage(err))
+    } finally {
+      clearTimeout(forceExitTimer)
     }
     process.exit(0)
   }

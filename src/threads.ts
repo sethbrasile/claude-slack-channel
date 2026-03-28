@@ -16,6 +16,7 @@ export class ThreadTracker {
   }
 
   classifyMessage(threadTs: string | undefined): MessageClassification {
+    if (threadTs === '') return 'new_input'
     if (!threadTs) return 'new_input'
     if (threadTs === this._activeThreadTs) return 'thread_reply'
     return 'new_input'
