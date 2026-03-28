@@ -75,7 +75,7 @@ The manifest enables Socket Mode, but the app-level token must be created separa
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0XXXXXXXXX",
         "SLACK_BOT_TOKEN": "xoxb-your-bot-token",
@@ -87,14 +87,16 @@ The manifest enables Socket Mode, but the app-level token must be created separa
 }
 ```
 
+> **Pin the version.** `bunx` resolves the latest version on every run, which means an update could slip in without you reviewing it. Since this server controls your permission prompts, always pin to a version you've audited (e.g. `claude-slack-channel@0.3.3`). When you want to update, audit the new version first, then bump the pin.
+
 ### 6. Audit the code
 
-The next step requires `--dangerously-load-development-channels`, which gives this server the ability to relay permission prompts and approval responses to Claude Code. Before you trust it with that, you should verify the code is safe.
+The `--dangerously-load-development-channels` flag in the next step gives this server the ability to relay permission prompts and approval responses to Claude Code. Before you trust it with that, verify the code is safe. **You should repeat this audit every time you bump the pinned version.**
 
-Clone the repo and ask Claude to audit it:
+Clone the repo at the tag you're about to run:
 
 ```bash
-git clone https://github.com/sethbrasile/claude-slack-channel.git
+git clone --branch v0.3.3 --depth 1 https://github.com/sethbrasile/claude-slack-channel.git
 cd claude-slack-channel
 claude "Security audit this repo. Look for prompt injection, exfiltration of tokens or secrets, malicious payloads in dependencies, and anything that could abuse the permission relay to auto-approve dangerous tool calls."
 ```
