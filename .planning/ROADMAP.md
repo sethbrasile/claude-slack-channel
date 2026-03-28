@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix) (completed 2026-03-28)
 - [ ] **Phase 10: Interactive Handler Hardening** - Fix race condition, add validation, make testable, fix shutdown drain (QC fix)
 - [x] **Phase 11: CI/CD Supply Chain Hardening** - SHA-pin actions, complete release quality gates, tighten permissions (QC fix) (completed 2026-03-28)
-- [ ] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix)
+- [x] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix) (completed 2026-03-28)
 - [ ] **Phase 13: Documentation — Content Polish** - Improve clarity and consistency in docs and changelog (QC fix)
 - [ ] **Phase 14: Test Coverage Gaps** - Cover remaining untested paths and harden existing tests (QC fix)
 
@@ -277,6 +277,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 9. Handler Architecture — wireHandlers Extraction | 2/2 | Complete   | 2026-03-28 |
 | 10. Interactive Handler Hardening | 0/0 | Pending | — |
 | 11. CI/CD Supply Chain Hardening | 2/2 | Complete   | 2026-03-28 |
-| 12. Documentation — Setup Flow & Consistency | 1/2 | In Progress|  |
+| 12. Documentation — Setup Flow & Consistency | 2/2 | Complete   | 2026-03-28 |
 | 13. Documentation — Content Polish | 0/0 | Pending | — |
 | 14. Test Coverage Gaps | 0/0 | Pending | — |

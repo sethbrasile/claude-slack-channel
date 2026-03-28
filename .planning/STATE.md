@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-28T19:06:17.874Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-28T19:06:55.729Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 14
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
   percent: 50
 ---
 
@@ -63,6 +63,7 @@ Progress: [█████░░░░░] 50%
 | Phase 11-cicd-supply-chain-hardening P01 | 5 | 2 tasks | 3 files |
 | Phase 12-documentation-setup-flow-consistency P02 | 1 | 2 tasks | 3 files |
 | Phase 11-cicd-supply-chain-hardening P02 | 1 | 1 tasks | 2 files |
+| Phase 12-documentation-setup-flow-consistency P01 | 2 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,8 @@ Recent decisions affecting current work:
 - [Phase 11-cicd-supply-chain-hardening]: Release step order: bun install → bun audit → bunx biome check . → bunx tsc --noEmit → bun test → npm publish (audit first to fail fast)
 - [Phase 12-documentation-setup-flow-consistency]: Version pin @0.3.3 in all .mcp.json examples; connections:write comment corrected to Basic Information > App-Level Tokens; back-link added to multi-project-vm.md
 - [Phase 11-cicd-supply-chain-hardening]: safeErrorMessage applied uniformly to all four logger levels via .map() — consistent defense-in-depth token scrubbing in createStderrLogger
+- [Phase 12-documentation-setup-flow-consistency]: Both block quotes removed (Bun note + v2.1.80+ note) — content now lives in Prerequisites, eliminating duplication
+- [Phase 12-documentation-setup-flow-consistency]: Examples repositioned before Comparison — higher utility content comes first for new users
 
 ### Pending Todos
 
@@ -117,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T19:06:17.871Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-28T19:06:55.727Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
