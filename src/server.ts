@@ -10,13 +10,13 @@ import { parseConfig, safeErrorMessage } from './config.ts'
 import {
   formatPermissionBlocks,
   formatPermissionResult,
-  PERMISSION_ID_RE,
+  PermissionRequestSchema,
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig } from './types.ts'
+import type { ChannelConfig, PermissionRequest } from './types.ts'
 
 // Module-level schema — used in createServer() (library path) and CLI block
 const ReplyArgsSchema = z.object({
@@ -174,12 +174,7 @@ if (import.meta.main) {
 
   // Track pending permission requests so we can update the Slack message
   // with the result after a button click. Keyed by request_id.
-  const pendingPermissions = new Map<
-    string,
-    {
-      params: { request_id: string; tool_name: string; description: string; input_preview: string }
-    }
-  >()
+  const pendingPermissions = new Map<string, { params: PermissionRequest }>()
 
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
@@ -274,16 +269,6 @@ if (import.meta.main) {
   // Permission request handler (Claude Code → server → Slack).
   // Registered after server.connect() so the transport is ready.
   // input_preview is optional — the protocol does not guarantee its presence.
-  const PermissionRequestSchema = z.object({
-    method: z.literal('notifications/claude/channel/permission_request'),
-    params: z.object({
-      request_id: z.string().regex(PERMISSION_ID_RE),
-      tool_name: z.string(),
-      description: z.string(),
-      input_preview: z.string().optional().default(''),
-    }),
-  })
-
   server.setNotificationHandler(PermissionRequestSchema, async ({ params }) => {
     const { text, blocks } = formatPermissionBlocks(params)
     // Store the request so we can update the message after a button click
