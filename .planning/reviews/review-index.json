@@ -26,6 +26,15 @@
       "file": "2026-03-27-deep-review.md",
       "counts": { "critical": 0, "high": 2, "medium": 11, "low": 12 },
       "structuralPatterns": ["test-surface-mismatch"]
+    },
+    {
+      "date": "2026-03-28",
+      "type": "deep-review",
+      "mode": "health-check",
+      "scope": "Full codebase + documentation",
+      "file": "2026-03-28-deep-review.md",
+      "counts": { "critical": 0, "high": 5, "medium": 25, "low": 23 },
+      "structuralPatterns": ["cli-block-isolation"]
     }
   ],
   "patterns": {
@@ -60,6 +69,13 @@
       "status": "resolved",
       "resolvedBy": "Phase 5 — Testability & Dead Code Cleanup",
       "resolvedDate": "2026-03-27"
+    },
+    "cli-block-isolation": {
+      "name": "CLI-Block Isolation",
+      "firstSeen": "2026-03-28",
+      "reviews": ["2026-03-28-deep-review.md"],
+      "status": "fix-in-progress",
+      "fixPhase": "Phase 9 — wireHandlers Extraction"
     }
   }
 }

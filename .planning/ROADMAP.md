@@ -17,9 +17,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Testing + CI** - Full unit test coverage on all pure functions and GitHub Actions CI pipeline (completed 2026-03-27)
 - [x] **Phase 4: Package + Documentation** - npm-publishable package, Slack app manifest, README, and community docs (completed 2026-03-27)
 - [x] **Phase 5: Testability & Dead Code Cleanup** - Align test surface with runtime surface, remove dead code, add missing test coverage (QC fix) (completed 2026-03-27)
-- [ ] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix)
+- [x] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix) (absorbed into Phase 10)
 - [x] **Phase 7: Config & Security Tightening** - Close validation gap and defense-in-depth items (QC fix) (completed 2026-03-27)
 - [x] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix) (completed 2026-03-27)
+- [ ] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix)
+- [ ] **Phase 10: Interactive Handler Hardening** - Fix race condition, add validation, make testable, fix shutdown drain (QC fix)
+- [ ] **Phase 11: CI/CD Supply Chain Hardening** - SHA-pin actions, complete release quality gates, tighten permissions (QC fix)
+- [ ] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix)
+- [ ] **Phase 13: Documentation — Content Polish** - Improve clarity and consistency in docs and changelog (QC fix)
+- [ ] **Phase 14: Test Coverage Gaps** - Cover remaining untested paths and harden existing tests (QC fix)
 
 ## Phase Details
 
@@ -143,6 +149,104 @@ Plans:
   8. CI workflow includes a security audit step
 **Plans**: 0 plans (pending)
 
+### Phase 9: Handler Architecture — wireHandlers Extraction
+**Goal**: Eliminate the CLI-block isolation pattern by extracting a `wireHandlers()` composition root that registers all handlers (reply, permission, interactive, onMessage). Both CLI and library paths call it, eliminating duplication and enabling testing.
+**Depends on**: Phase 5 (server.ts restructure must be stable)
+**Requirements**: Deep-review findings H2, M2, M3, M14, L7, L8
+**Success Criteria** (what must be TRUE):
+  1. A `wireHandlers(server, web, tracker, config)` function exists and registers all handlers (reply tool, permission notification, interactive callback, onMessage pipeline)
+  2. Both the CLI entry point and `createServer()` library path call `wireHandlers()` — no duplicated handler bodies
+  3. `PermissionRequestSchema` is defined in `permission.ts` and exported, not inline in the CLI block
+  4. `pendingPermissions` uses the `PermissionRequest` type from `types.ts`
+  5. `formatPermissionRequest` export scope is reviewed (unexport if only used internally)
+  6. `bun test` passes, `bunx tsc --noEmit` exits 0
+**Plans**: 0 plans (pending)
+
+### Phase 10: Interactive Handler Hardening
+**Goal**: Eliminate the interactive button race condition, add Zod validation for interactive payloads, route interactive callbacks through messageQueue for shutdown drain, and add TTL to pendingPermissions. Absorbs Phase 6 (shutdown lifecycle) findings.
+**Depends on**: Phase 9 (wireHandlers extraction makes this cleaner)
+**Requirements**: Deep-review findings H1, M1, M5, M13, L1; Phase 6 findings M1, L1
+**Success Criteria** (what must be TRUE):
+  1. Interactive button-click callbacks are routed through `messageQueue` — no concurrent execution on double-click
+  2. Interactive payloads are validated through a Zod schema before processing
+  3. `pendingPermissions` entries have a TTL and size cap — stale entries are cleaned up
+  4. The interactive callback is an exported function testable with mocked dependencies
+  5. `shutdown()` drains interactive callbacks (via messageQueue) before closing transport
+  6. Interactive handler has unit tests covering: happy path, double-click dedup, unknown request_id, malformed payload
+  7. `bun test` passes
+**Plans**: 0 plans (pending)
+
+### Phase 11: CI/CD Supply Chain Hardening
+**Goal**: Pin GitHub Actions to immutable SHAs, add missing quality gates to the release workflow, tighten permissions, and complete logger scrubbing.
+**Depends on**: None (independent)
+**Requirements**: Deep-review findings H3, M6, M7, M8, M9, M15, L12
+**Success Criteria** (what must be TRUE):
+  1. All GitHub Actions in ci.yml and release.yml are pinned to full commit SHAs with version comments
+  2. Release workflow includes `bunx biome check .` lint step before typecheck
+  3. Release workflow includes `bun audit` after `bun install --frozen-lockfile`
+  4. `actions/setup-node` has `registry-url: 'https://registry.npmjs.org'`
+  5. Release workflow has top-level `permissions: {}` with per-job overrides
+  6. `safeErrorMessage` is applied to all four logger levels (debug, info, warn, error), not just error
+  7. Dependabot config has groups and labels configured
+**Plans**: 0 plans (pending)
+
+### Phase 12: Documentation — Setup Flow & Consistency
+**Goal**: Fix security-relevant documentation gaps and reduce setup friction by adding prerequisites, pinning example versions, and adding troubleshooting.
+**Depends on**: None (independent)
+**Requirements**: Deep-review findings H4, H5, M16, M17, M18, M19, M20, M25, L21, L22, L23
+**Success Criteria** (what must be TRUE):
+  1. All `.mcp.json` examples pin `claude-slack-channel@0.3.3` matching the README
+  2. A "Prerequisites" section before Quick Start lists Claude Code version requirement and claude.ai login
+  3. Slack admin/app-management permissions noted before Step 1
+  4. Manifest comment about `connections:write` aligns with README (remove "automatic" claim)
+  5. Channel ID URL format shown inline: `https://yourworkspace.slack.com/archives/C0XXXXXXXXX`
+  6. `W0XXXXXXXXX` format documented alongside `U0...` for ALLOWED_USER_IDS
+  7. Bot name uses `/invite @Claude` matching manifest, with note
+  8. Audit step clarified: "(run this in any terminal where Claude Code is available)"
+  9. Examples section position improved in README
+  10. `multi-project-vm.md` has back-link to `basic-setup.md`
+  11. Troubleshooting section added with common issues
+**Plans**: 0 plans (pending)
+
+### Phase 13: Documentation — Content Polish
+**Goal**: Improve clarity and consistency in docs and changelog — rewrite jargon-heavy opening, fix placeholder syntax, update config descriptions, and fix changelog.
+**Depends on**: Phase 12 (structural doc changes first, then polish)
+**Requirements**: Deep-review findings M21, M22, M23, M24, L6, L13, L14
+**Success Criteria** (what must be TRUE):
+  1. Opening paragraph defines "Socket Mode," "MCP server," and "Channel protocol" before using them
+  2. Placeholder syntax is consistent across README and examples (no `{id}` vs concrete mismatch)
+  3. Permission flow description leads with button interaction, not just text fallback
+  4. SERVER_NAME description includes "Appears as the MCP server name in Claude's tool list"
+  5. Changelog has explanatory note about same-day dates, diff link footer, and audience scope for breaking changes
+  6. Manifest scope breadth (workspace-wide) documented in a comment
+  7. Interactivity section in manifest has Socket Mode comment
+**Plans**: 0 plans (pending)
+
+### Phase 14: Test Coverage Gaps
+**Goal**: Cover remaining untested code paths and harden existing test assertions.
+**Depends on**: Phase 9 (wireHandlers extraction enables CLI-path testing)
+**Requirements**: Deep-review findings M4, M10, M11, M12, L2, L3, L4, L5, L9, L10, L11, L15, L16, L17, L18, L19, L20
+**Success Criteria** (what must be TRUE):
+  1. `classifyMessage('')` explicitly guards empty string — returns `'new_input'`
+  2. SDK private property tests have guard assertions that fail loudly if internals change
+  3. Test exists for `chat.postMessage` returning `{ ok: false, error: '...' }` — verifies `isError: true` response
+  4. TTL dedup logic tested: duplicate `ts` suppressed, expired `ts` re-accepted
+  5. `seenTs` map has upper-bound cap tested
+  6. Broadcast mention stripping tested for `<@UXXXXX>` and `<!subteam^>` patterns
+  7. `userId` in `formatPermissionResult` validated against pattern
+  8. `safeErrorMessage` tested with mid-word token pattern
+  9. Forced-exit timeout exists in shutdown (process doesn't hang if `server.close()` never resolves)
+  10. `bin` entry point behavior documented or tested
+  11. `examples/` excluded from npm `files` array (or justified if included)
+  12. Broadcast mention test assertions verify replacement character
+  13. `ALLOWED_USER_IDS` trim behavior tested
+  14. `formatPermissionBlocks` tested with broadcast mentions
+  15. `classifyMessage('')` test description accurate
+  16. `safeErrorMessage` tested with mid-word token
+  17. `createServer` without deps tested for tool/call handler boundary
+  18. `bun test` passes
+**Plans**: 0 plans (pending)
+
 ## Progress
 
 **Execution Order:**
@@ -155,6 +259,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 3. Testing + CI | 2/2 | Complete   | 2026-03-27 |
 | 4. Package + Documentation | 2/2 | Complete   | 2026-03-27 |
 | 5. Testability & Dead Code Cleanup | 0/0 | Complete    | 2026-03-27 |
-| 6. Shutdown & Lifecycle Hardening | 0/0 | Pending | — |
+| 6. Shutdown & Lifecycle Hardening | 0/0 | Absorbed → Phase 10 | — |
 | 7. Config & Security Tightening | 0/0 | Complete    | 2026-03-27 |
 | 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
+| 9. Handler Architecture — wireHandlers Extraction | 0/0 | Pending | — |
+| 10. Interactive Handler Hardening | 0/0 | Pending | — |
+| 11. CI/CD Supply Chain Hardening | 0/0 | Pending | — |
+| 12. Documentation — Setup Flow & Consistency | 0/0 | Pending | — |
+| 13. Documentation — Content Polish | 0/0 | Pending | — |
+| 14. Test Coverage Gaps | 0/0 | Pending | — |
