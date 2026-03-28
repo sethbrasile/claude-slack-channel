@@ -73,7 +73,7 @@ In your project directory, create or edit `.mcp.json`:
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0XXXXXXXXX",
         "SLACK_BOT_TOKEN": "xoxb-your-bot-token-here",

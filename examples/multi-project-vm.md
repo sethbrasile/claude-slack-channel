@@ -42,7 +42,7 @@ Create a separate `.mcp.json` in each project directory. Use a different `SLACK_
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0ALPHA00000",
         "SLACK_BOT_TOKEN": "xoxb-your-shared-bot-token",
@@ -61,7 +61,7 @@ Create a separate `.mcp.json` in each project directory. Use a different `SLACK_
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0BETA000000",
         "SLACK_BOT_TOKEN": "xoxb-your-shared-bot-token",
