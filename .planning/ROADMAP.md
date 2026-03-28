@@ -214,7 +214,11 @@ Plans:
   9. Examples section position improved in README
   10. `multi-project-vm.md` has back-link to `basic-setup.md`
   11. Troubleshooting section added with common issues
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — README.md: Prerequisites section, config table improvements, bot invite fix, audit clarity, Examples repositioning, Troubleshooting section
+- [ ] 12-02-PLAN.md — Example version pins, manifest comment fix, multi-project back-link
 
 ### Phase 13: Documentation — Content Polish
 **Goal**: Improve clarity and consistency in docs and changelog — rewrite jargon-heavy opening, fix placeholder syntax, update config descriptions, and fix changelog.
