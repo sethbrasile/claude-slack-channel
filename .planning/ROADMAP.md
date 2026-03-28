@@ -192,7 +192,11 @@ Plans:
   5. Release workflow has top-level `permissions: {}` with per-job overrides
   6. `safeErrorMessage` is applied to all four logger levels (debug, info, warn, error), not just error
   7. Dependabot config has groups and labels configured
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — SHA-pin all actions, add bun audit + biome steps to release, add registry-url + permissions deny-all, Dependabot groups/labels (H3, M6, M7, M8, M9, L12)
+- [ ] 11-02-PLAN.md — Extend createStderrLogger to scrub tokens on all four logger levels + unit tests (M15)
 
 ### Phase 12: Documentation — Setup Flow & Consistency
 **Goal**: Fix security-relevant documentation gaps and reduce setup friction by adding prerequisites, pinning example versions, and adding troubleshooting.
@@ -268,7 +272,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
 | 9. Handler Architecture — wireHandlers Extraction | 0/0 | Pending | — |
 | 10. Interactive Handler Hardening | 0/0 | Pending | — |
-| 11. CI/CD Supply Chain Hardening | 0/0 | Pending | — |
+| 11. CI/CD Supply Chain Hardening | 0/2 | Pending | — |
 | 12. Documentation — Setup Flow & Consistency | 0/0 | Pending | — |
 | 13. Documentation — Content Polish | 0/0 | Pending | — |
 | 14. Test Coverage Gaps | 0/0 | Pending | — |
