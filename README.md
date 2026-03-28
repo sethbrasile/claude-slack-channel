@@ -71,7 +71,7 @@ The manifest enables Socket Mode, but the app-level token must be created separa
 
 | What | Where to find it |
 |------|-----------------|
-| Channel ID (`C0...`) | Right-click the channel in Slack > **Copy link** > last path segment of the URL |
+| Channel ID (`C0...`) | Right-click the channel in Slack > **Copy link** > last path segment of the URL (e.g. `https://yourworkspace.slack.com/archives/C0XXXXXXXXX`) |
 | Your user ID (`U0...`) | Click your profile picture > **Profile** > **⋮** > **Copy member ID** |
 
 ### 5. Add to `.mcp.json`
@@ -101,6 +101,8 @@ The `--dangerously-load-development-channels` flag in the next step gives this s
 
 Clone the repo at the tag you're about to run:
 
+(Run this audit in any terminal where Claude Code is available.)
+
 ```bash
 git clone --branch v0.3.3 --depth 1 https://github.com/sethbrasile/claude-slack-channel.git
 cd claude-slack-channel
@@ -112,7 +114,7 @@ This is a small, focused codebase — the audit should take under a minute. Read
 ### 7. Invite the bot and start Claude
 
 ```bash
-# In Slack: /invite @YourBotName
+# In Slack: /invite @Claude  (the display name set in the manifest)
 # In terminal:
 claude --dangerously-load-development-channels server:slack
 ```
@@ -166,7 +168,7 @@ Send a new top-level message to start a fresh session. The old thread is abandon
 | `SLACK_BOT_TOKEN` | Yes | Bot User OAuth Token (starts with `xoxb-`) |
 | `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode (starts with `xapp-`) |
 | `SLACK_CHANNEL_ID` | Yes | Channel to listen on (e.g. `C0XXXXXXXXX`) |
-| `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands |
+| `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands. Format: `U0XXXXXXXXX` (regular) or `W0XXXXXXXXX` (workspace accounts) |
 | `SERVER_NAME` | No | Identifier in Claude's context. Defaults to `slack`. Useful when running multiple instances. |
 
 ---
