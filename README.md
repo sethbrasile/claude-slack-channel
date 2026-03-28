@@ -210,13 +210,13 @@ Single process, no database, no external dependencies beyond Slack. The server c
 |---|---|---|
 | **Permission relay** | Yes — approve/deny from Slack | No |
 | **User auth** | Static allowlist (`ALLOWED_USER_IDS`) | Pairing code flow |
-| **Multi-channel** | One channel per instance — run multiple instances with the same Slack app for multiple projects ([example](./examples/multi-project-vm.md)) | Single instance routes multiple channels |
+| **Multi-channel** | One channel per MCP config — add a config per project, all sharing the same Slack app ([example](./examples/multi-project-vm.md)) | Single config routes multiple channels |
 | **Thread model** | State machine with abandon semantics | Simpler threading |
 | **Entry point** | `bunx claude-slack-channel` | `bunx claude-code-slack-channel` |
 
-**Use this package** if you want unattended automation with human-in-the-loop approvals and a static operator list is fine. Multiple projects work by running one server instance per project, each pointed at a different channel — they share the same Slack app and tokens.
+**Use this package** if you want unattended automation with human-in-the-loop approvals and a static operator list is fine. Multiple projects work by adding an MCP config per project, each pointed at a different channel — they all share the same Slack app and tokens.
 
-**Use jeremylongshore's** if you need a single server process to multiplex across channels, or a pairing code flow for dynamic user onboarding.
+**Use jeremylongshore's** if you need a single config to multiplex across channels, or a pairing code flow for dynamic user onboarding.
 
 ---
 
