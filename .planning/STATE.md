@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-28T19:06:10.343Z"
+last_updated: "2026-03-28T19:06:13.952Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 14
@@ -104,6 +104,7 @@ Recent decisions affecting current work:
 - [Phase 11-cicd-supply-chain-hardening]: Release workflow: permissions: {} deny-all at workflow level, per-job grants for contents:write + id-token:write
 - [Phase 11-cicd-supply-chain-hardening]: Release step order: bun install → bun audit → bunx biome check . → bunx tsc --noEmit → bun test → npm publish (audit first to fail fast)
 - [Phase 12-documentation-setup-flow-consistency]: Version pin @0.3.3 in all .mcp.json examples; connections:write comment corrected to Basic Information > App-Level Tokens; back-link added to multi-project-vm.md
+- [Phase 11-cicd-supply-chain-hardening]: safeErrorMessage applied uniformly to all four logger levels via .map() — consistent defense-in-depth token scrubbing in createStderrLogger
 
 ### Pending Todos
 
