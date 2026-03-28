@@ -10,20 +10,149 @@ import { parseConfig, safeErrorMessage } from './config.ts'
 import {
   formatPermissionBlocks,
   formatPermissionResult,
-  PERMISSION_ID_RE,
+  PermissionRequestSchema,
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
 import { createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig } from './types.ts'
+import type { ChannelConfig, PermissionRequest } from './types.ts'
 
-// Module-level schema — used in createServer() (library path) and CLI block
+// Module-level schema — used in makeReplyHandler (library path) and CLI block via wireHandlers
 const ReplyArgsSchema = z.object({
   text: z.string(),
   thread_ts: z.string().optional(),
   start_thread: z.boolean().optional(),
 })
+
+/**
+ * Factory for the reply tool handler. Returns the handler function that processes
+ * CallToolRequest for the 'reply' tool, posting to Slack via web.chat.postMessage.
+ * Exported for direct unit testing (M14) — allows tests to invoke handler logic
+ * without going through createServer or the CLI block.
+ */
+export function makeReplyHandler(web: WebClient, tracker: ThreadTracker, config: ChannelConfig) {
+  return async (request: {
+    params: { name: string; arguments?: unknown }
+  }): Promise<{ content: { type: string; text: string }[]; isError?: boolean }> => {
+    if (request.params.name !== 'reply') {
+      return {
+        content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }],
+        isError: true,
+      }
+    }
+
+    const parsed = ReplyArgsSchema.safeParse(request.params.arguments)
+    if (!parsed.success) {
+      return {
+        content: [{ type: 'text', text: `Invalid arguments: ${parsed.error.message}` }],
+        isError: true,
+      }
+    }
+    const args = parsed.data
+    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
+    // to prevent Claude's replies from triggering workspace-wide notifications
+    const text = args.text.replaceAll('<!', '<\u200b!')
+    // Explicit thread_ts takes priority; otherwise fall back to the active
+    // thread so follow-up replies stay threaded automatically.
+    // start_thread omits thread_ts so the message posts top-level.
+    const threadTs = args.start_thread
+      ? undefined
+      : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
+
+    try {
+      const result = await web.chat.postMessage({
+        channel: config.channelId,
+        text,
+        thread_ts: threadTs,
+        unfurl_links: false,
+        unfurl_media: false,
+      })
+      if (!result.ok) {
+        throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
+      }
+      // Anchor the thread tracker when start_thread is set so subsequent
+      // replies (which will hit the activeThreadTs fallback above) land in
+      // the thread that was just created.
+      if (result.ts && args.start_thread) {
+        tracker.startThread(result.ts)
+      }
+      return { content: [{ type: 'text', text: 'sent' }] }
+    } catch (err) {
+      const message = safeErrorMessage(err)
+      console.error('[reply] chat.postMessage failed:', message)
+      return {
+        content: [{ type: 'text', text: `Failed to send: ${message}` }],
+        isError: true,
+      }
+    }
+  }
+}
+
+/**
+ * Factory for the permission notification handler. Returns the handler that processes
+ * notifications/claude/channel/permission_request notifications from Claude Code,
+ * posting a Slack message with Approve/Deny buttons.
+ * Not exported — internal implementation detail, tested indirectly via wireHandlers.
+ */
+function makePermissionHandler(
+  web: WebClient,
+  tracker: ThreadTracker,
+  config: ChannelConfig,
+  pendingPermissions: Map<string, { params: PermissionRequest }>,
+) {
+  return async ({ params }: { params: PermissionRequest }): Promise<void> => {
+    const { text, blocks } = formatPermissionBlocks(params)
+    // Store the request so we can update the message after a button click
+    pendingPermissions.set(params.request_id, { params })
+    // Post the permission prompt IN the active thread so it appears inline
+    // with the command that triggered it. Falls back to top-level if there
+    // is no active thread (e.g. fire-and-forget command with no question phase).
+    //
+    // Do NOT call tracker.startThread() here — the tracker must stay anchored
+    // to the original command thread so the user's yes/no reply is classified
+    // as thread_reply, not new_input.
+    try {
+      const result = await web.chat.postMessage({
+        channel: config.channelId,
+        text,
+        // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+        blocks: blocks as any,
+        thread_ts: tracker.activeThreadTs ?? undefined,
+        unfurl_links: false,
+        unfurl_media: false,
+      })
+      if (!result.ok) {
+        console.error('[permission] chat.postMessage returned ok: false:', result.error)
+      }
+    } catch (err) {
+      console.error('[permission] chat.postMessage failed:', safeErrorMessage(err))
+    }
+  }
+}
+
+/**
+ * Composition root for handler registration. Registers both:
+ * - CallToolRequestSchema → makeReplyHandler (reply tool)
+ * - PermissionRequestSchema → makePermissionHandler (permission relay)
+ *
+ * Called from createServer() when deps are injected (library path) and from
+ * the CLI block after server.connect() and client initialization.
+ * Exported for direct unit testing (M14).
+ */
+export function wireHandlers(
+  server: Server,
+  web: WebClient,
+  tracker: ThreadTracker,
+  config: ChannelConfig,
+  pendingPermissions: Map<string, { params: PermissionRequest }>,
+): void {
+  server.setRequestHandler(CallToolRequestSchema, makeReplyHandler(web, tracker, config))
+  server.setNotificationHandler(
+    PermissionRequestSchema,
+    makePermissionHandler(web, tracker, config, pendingPermissions),
+  )
+}
 
 export function createServer(
   config: ChannelConfig,
@@ -88,68 +217,13 @@ This session is bound to Slack. The user may be watching Slack instead of (or in
     ],
   }))
 
-  // Register reply tool handler when deps are injected (library consumer path).
-  // Library consumers who call createServer(config, { web, tracker }) get a fully
-  // functional server without needing to register the handler separately.
-  // The CLI path creates the server without deps and registers the handler after
+  // Register reply tool + permission notification handlers when deps are injected
+  // (library consumer path). Library consumers who call createServer(config, { web, tracker })
+  // get a fully functional server without needing to register the handlers separately.
+  // The CLI path creates the server without deps and calls wireHandlers after
   // web and tracker are initialized (see if (import.meta.main) block below).
   if (deps?.web && deps?.tracker) {
-    const web = deps.web
-    const tracker = deps.tracker
-
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (request.params.name !== 'reply') {
-        return {
-          content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }],
-          isError: true,
-        }
-      }
-
-      const parsed = ReplyArgsSchema.safeParse(request.params.arguments)
-      if (!parsed.success) {
-        return {
-          content: [{ type: 'text', text: `Invalid arguments: ${parsed.error.message}` }],
-          isError: true,
-        }
-      }
-      const args = parsed.data
-      // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
-      // to prevent Claude's replies from triggering workspace-wide notifications
-      const text = args.text.replaceAll('<!', '<\u200b!')
-      // Explicit thread_ts takes priority; otherwise fall back to the active
-      // thread so follow-up replies stay threaded automatically.
-      // start_thread omits thread_ts so the message posts top-level.
-      const threadTs = args.start_thread
-        ? undefined
-        : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
-
-      try {
-        const result = await web.chat.postMessage({
-          channel: config.channelId,
-          text,
-          thread_ts: threadTs,
-          unfurl_links: false,
-          unfurl_media: false,
-        })
-        if (!result.ok) {
-          throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
-        }
-        // Anchor the thread tracker when start_thread is set so subsequent
-        // replies (which will hit the activeThreadTs fallback above) land in
-        // the thread that was just created.
-        if (result.ts && args.start_thread) {
-          tracker.startThread(result.ts)
-        }
-        return { content: [{ type: 'text', text: 'sent' }] }
-      } catch (err) {
-        const message = safeErrorMessage(err)
-        console.error('[reply] chat.postMessage failed:', message)
-        return {
-          content: [{ type: 'text', text: `Failed to send: ${message}` }],
-          isError: true,
-        }
-      }
-    })
+    wireHandlers(server, deps.web, deps.tracker, config, new Map())
   }
 
   return server
@@ -188,12 +262,7 @@ if (import.meta.main) {
 
   // Track pending permission requests so we can update the Slack message
   // with the result after a button click. Keyed by request_id.
-  const pendingPermissions = new Map<
-    string,
-    {
-      params: { request_id: string; tool_name: string; description: string; input_preview: string }
-    }
-  >()
+  const pendingPermissions = new Map<string, { params: PermissionRequest }>()
 
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
@@ -285,104 +354,10 @@ if (import.meta.main) {
     },
   )
 
-  // Permission request handler (Claude Code → server → Slack).
-  // Registered after server.connect() so the transport is ready.
-  // input_preview is optional — the protocol does not guarantee its presence.
-  const PermissionRequestSchema = z.object({
-    method: z.literal('notifications/claude/channel/permission_request'),
-    params: z.object({
-      request_id: z.string().regex(PERMISSION_ID_RE),
-      tool_name: z.string(),
-      description: z.string(),
-      input_preview: z.string().optional().default(''),
-    }),
-  })
-
-  server.setNotificationHandler(PermissionRequestSchema, async ({ params }) => {
-    const { text, blocks } = formatPermissionBlocks(params)
-    // Store the request so we can update the message after a button click
-    pendingPermissions.set(params.request_id, { params })
-    // Post the permission prompt IN the active thread so it appears inline
-    // with the command that triggered it. Falls back to top-level if there
-    // is no active thread (e.g. fire-and-forget command with no question phase).
-    //
-    // Do NOT call tracker.startThread() here — the tracker must stay anchored
-    // to the original command thread so the user's yes/no reply is classified
-    // as thread_reply, not new_input.
-    try {
-      const result = await web.chat.postMessage({
-        channel: config.channelId,
-        text,
-        // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
-        blocks: blocks as any,
-        thread_ts: tracker.activeThreadTs ?? undefined,
-        unfurl_links: false,
-        unfurl_media: false,
-      })
-      if (!result.ok) {
-        console.error('[permission] chat.postMessage returned ok: false:', result.error)
-      }
-    } catch (err) {
-      console.error('[permission] chat.postMessage failed:', safeErrorMessage(err))
-    }
-  })
-
-  // Reply tool handler (Claude → Slack) — CLI path.
-  // Registered here because web and tracker are initialized after server.connect().
-  // Library consumers use createServer(config, { web, tracker }) instead.
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name !== 'reply') {
-      return {
-        content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }],
-        isError: true,
-      }
-    }
-
-    const parsed = ReplyArgsSchema.safeParse(request.params.arguments)
-    if (!parsed.success) {
-      return {
-        content: [{ type: 'text', text: `Invalid arguments: ${parsed.error.message}` }],
-        isError: true,
-      }
-    }
-    const args = parsed.data
-    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
-    // to prevent Claude's replies from triggering workspace-wide notifications
-    const text = args.text.replaceAll('<!', '<\u200b!')
-    // Explicit thread_ts takes priority; otherwise fall back to the active
-    // thread so follow-up replies stay threaded automatically.
-    // start_thread omits thread_ts so the message posts top-level.
-    const threadTs = args.start_thread
-      ? undefined
-      : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
-
-    try {
-      const result = await web.chat.postMessage({
-        channel: config.channelId,
-        text,
-        thread_ts: threadTs,
-        unfurl_links: false,
-        unfurl_media: false,
-      })
-      if (!result.ok) {
-        throw new Error(`chat.postMessage returned ok: false: ${result.error}`)
-      }
-      // Anchor the thread tracker when start_thread is set so subsequent
-      // replies (which will hit the activeThreadTs fallback above) land in
-      // the thread that was just created.
-      if (result.ts && args.start_thread) {
-        tracker.startThread(result.ts)
-      }
-      return { content: [{ type: 'text', text: 'sent' }] }
-    } catch (err) {
-      const message = safeErrorMessage(err)
-      console.error('[reply] chat.postMessage failed:', message)
-      return {
-        content: [{ type: 'text', text: `Failed to send: ${message}` }],
-        isError: true,
-      }
-    }
-  })
+  // Wire all handlers via composition root — registers reply tool and permission
+  // notification handler. Called after server.connect() so the transport is ready,
+  // and after pendingPermissions is declared so the permission handler can close over it.
+  wireHandlers(server, web, tracker, config, pendingPermissions)
 
   // Idempotency guard — SIGTERM, SIGINT, and stdin close can fire simultaneously.
   // The guard ensures shutdown() executes its body exactly once.

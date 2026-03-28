@@ -79,9 +79,9 @@ export function shouldProcessMessage(event: SlackEvent, filter: MessageFilter): 
  */
 export function createStderrLogger(): Logger {
   return {
-    debug: (...msgs: unknown[]) => console.error('[slack:debug]', ...msgs),
-    info: (...msgs: unknown[]) => console.error('[slack:info]', ...msgs),
-    warn: (...msgs: unknown[]) => console.error('[slack:warn]', ...msgs),
+    debug: (...msgs: unknown[]) => console.error('[slack:debug]', ...msgs.map(safeErrorMessage)),
+    info: (...msgs: unknown[]) => console.error('[slack:info]', ...msgs.map(safeErrorMessage)),
+    warn: (...msgs: unknown[]) => console.error('[slack:warn]', ...msgs.map(safeErrorMessage)),
     error: (...msgs: unknown[]) => console.error('[slack:error]', ...msgs.map(safeErrorMessage)),
     setLevel: (_level: LogLevel) => {},
     setName: (_name: string) => {},

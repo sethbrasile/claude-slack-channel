@@ -4,10 +4,9 @@
 # to create a preconfigured Slack app in seconds.
 #
 # NOTE: The app-level token (xapp-) requires the "connections:write" scope.
-# This scope is set separately when you enable Socket Mode in Slack app settings:
-#   App Settings > Socket Mode > Enable Socket Mode > Generate Token
-# The "connections:write" scope is NOT part of this manifest — it is granted
-# automatically when Socket Mode is enabled.
+# This scope is set separately when you generate the app-level token:
+#   Basic Information > App-Level Tokens > Generate Token and Scopes > Add "connections:write"
+# The "connections:write" scope is NOT part of this manifest.
 
 _metadata:
   major_version: 2

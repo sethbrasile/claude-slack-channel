@@ -32,9 +32,15 @@ Claude Code can run unattended — but sometimes it needs a human to approve a d
 
 ---
 
-## Quick start
+## Prerequisites
 
-> **Requires [Bun](https://bun.sh).** Use `bunx` to run. `npx` will not work — the entry point is TypeScript executed directly by Bun.
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code) v2.1.80+** with a [claude.ai](https://claude.ai) login. An API key alone is not sufficient — the Channel protocol requires claude.ai authentication.
+- **[Bun](https://bun.sh)** installed. Use `bunx` to run. `npx` will not work — the entry point is TypeScript executed directly by Bun.
+- **Slack workspace admin or app-management permissions** to create and install a Slack app.
+
+---
+
+## Quick start
 
 ### 1. Create a Slack app
 
@@ -65,7 +71,7 @@ The manifest enables Socket Mode, but the app-level token must be created separa
 
 | What | Where to find it |
 |------|-----------------|
-| Channel ID (`C0...`) | Right-click the channel in Slack > **Copy link** > last path segment of the URL |
+| Channel ID (`C0...`) | Right-click the channel in Slack > **Copy link** > last path segment of the URL (e.g. `https://yourworkspace.slack.com/archives/C0XXXXXXXXX`) |
 | Your user ID (`U0...`) | Click your profile picture > **Profile** > **⋮** > **Copy member ID** |
 
 ### 5. Add to `.mcp.json`
@@ -95,6 +101,8 @@ The `--dangerously-load-development-channels` flag in the next step gives this s
 
 Clone the repo at the tag you're about to run:
 
+(Run this audit in any terminal where Claude Code is available.)
+
 ```bash
 git clone --branch v0.3.3 --depth 1 https://github.com/sethbrasile/claude-slack-channel.git
 cd claude-slack-channel
@@ -106,12 +114,10 @@ This is a small, focused codebase — the audit should take under a minute. Read
 ### 7. Invite the bot and start Claude
 
 ```bash
-# In Slack: /invite @YourBotName
+# In Slack: /invite @Claude  (the display name set in the manifest)
 # In terminal:
 claude --dangerously-load-development-channels server:slack
 ```
-
-> Requires Claude Code v2.1.80+ and a [claude.ai](https://claude.ai) login (API key alone is not sufficient).
 
 ---
 
@@ -162,7 +168,7 @@ Send a new top-level message to start a fresh session. The old thread is abandon
 | `SLACK_BOT_TOKEN` | Yes | Bot User OAuth Token (starts with `xoxb-`) |
 | `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode (starts with `xapp-`) |
 | `SLACK_CHANNEL_ID` | Yes | Channel to listen on (e.g. `C0XXXXXXXXX`) |
-| `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands |
+| `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands. Format: `U0XXXXXXXXX` (regular) or `W0XXXXXXXXX` (workspace accounts) |
 | `SERVER_NAME` | No | Identifier in Claude's context. Defaults to `slack`. Useful when running multiple instances. |
 
 ---
@@ -204,6 +210,13 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ---
 
+## Examples
+
+- [Basic setup](./examples/basic-setup.md) — single project, start to finish
+- [Multi-project VM](./examples/multi-project-vm.md) — multiple server instances on a shared machine
+
+---
+
 ## Comparison with community implementation
 
 | | This package | [jeremylongshore/claude-code-slack-channel](https://github.com/jeremylongshore/claude-code-slack-channel) |
@@ -220,10 +233,15 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ---
 
-## Examples
+## Troubleshooting
 
-- [Basic setup](./examples/basic-setup.md) — single project, start to finish
-- [Multi-project VM](./examples/multi-project-vm.md) — multiple server instances on a shared machine
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| Claude doesn't respond to messages | Bot not invited to channel, or wrong `SLACK_CHANNEL_ID` | Run `/invite @Claude` in the channel; verify the channel ID matches the `C0...` segment in the URL |
+| Server starts but disconnects immediately | Invalid `SLACK_APP_TOKEN` (must start with `xapp-`) or `connections:write` scope missing | Check token prefix; verify the scope was added when generating the app-level token under **Basic Information > App-Level Tokens** |
+| "Invalid config" on startup | Missing or malformed env vars | Check all four required vars are set; user IDs must start with `U` or `W` |
+| Permission buttons appear but clicking does nothing | Interactivity not enabled in the Slack app | Verify interactivity is enabled in Slack app settings (the manifest enables it by default) |
+| Works locally but fails on a remote VM | Firewall blocking outbound WebSocket | Socket Mode uses port 443 outbound only — confirm outbound HTTPS is allowed |
 
 ---
 

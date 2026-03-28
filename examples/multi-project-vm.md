@@ -4,6 +4,8 @@ This guide explains how to run Claude Code for multiple independent projects on 
 
 > **Important:** Each project requires its own independent MCP server process with its own dedicated Slack channel. There is no multi-channel mode in a single server process — each `claude-slack-channel` instance binds to exactly one `SLACK_CHANNEL_ID`.
 
+> **Note:** If you haven't completed the one-time Slack app setup yet, start with [basic-setup.md](./basic-setup.md) first.
+
 ---
 
 ## Overview
@@ -42,7 +44,7 @@ Create a separate `.mcp.json` in each project directory. Use a different `SLACK_
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0ALPHA00000",
         "SLACK_BOT_TOKEN": "xoxb-your-shared-bot-token",
@@ -61,7 +63,7 @@ Create a separate `.mcp.json` in each project directory. Use a different `SLACK_
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel"],
+      "args": ["claude-slack-channel@0.3.3"],
       "env": {
         "SLACK_CHANNEL_ID": "C0BETA000000",
         "SLACK_BOT_TOKEN": "xoxb-your-shared-bot-token",

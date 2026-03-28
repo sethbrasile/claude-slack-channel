@@ -20,10 +20,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix) (absorbed into Phase 10)
 - [x] **Phase 7: Config & Security Tightening** - Close validation gap and defense-in-depth items (QC fix) (completed 2026-03-27)
 - [x] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix) (completed 2026-03-27)
-- [ ] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix)
+- [x] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix) (completed 2026-03-28)
 - [ ] **Phase 10: Interactive Handler Hardening** - Fix race condition, add validation, make testable, fix shutdown drain (QC fix)
-- [ ] **Phase 11: CI/CD Supply Chain Hardening** - SHA-pin actions, complete release quality gates, tighten permissions (QC fix)
-- [ ] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix)
+- [x] **Phase 11: CI/CD Supply Chain Hardening** - SHA-pin actions, complete release quality gates, tighten permissions (QC fix) (completed 2026-03-28)
+- [x] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix) (completed 2026-03-28)
 - [ ] **Phase 13: Documentation — Content Polish** - Improve clarity and consistency in docs and changelog (QC fix)
 - [ ] **Phase 14: Test Coverage Gaps** - Cover remaining untested paths and harden existing tests (QC fix)
 
@@ -160,7 +160,11 @@ Plans:
   4. `pendingPermissions` uses the `PermissionRequest` type from `types.ts`
   5. `formatPermissionRequest` export scope is reviewed (unexport if only used internally)
   6. `bun test` passes, `bunx tsc --noEmit` exits 0
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Move PermissionRequestSchema to permission.ts, fix pendingPermissions type, add formatPermissionRequest testability comment (M3, L7, L8)
+- [ ] 09-02-PLAN.md — Extract makeReplyHandler, wireHandlers; deduplicate reply handler; wire both paths; add unit tests (H2, M2, M14)
 
 ### Phase 10: Interactive Handler Hardening
 **Goal**: Eliminate the interactive button race condition, add Zod validation for interactive payloads, route interactive callbacks through messageQueue for shutdown drain, and add TTL to pendingPermissions. Absorbs Phase 6 (shutdown lifecycle) findings.
@@ -188,7 +192,11 @@ Plans:
   5. Release workflow has top-level `permissions: {}` with per-job overrides
   6. `safeErrorMessage` is applied to all four logger levels (debug, info, warn, error), not just error
   7. Dependabot config has groups and labels configured
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — SHA-pin all actions, add bun audit + biome steps to release, add registry-url + permissions deny-all, Dependabot groups/labels (H3, M6, M7, M8, M9, L12)
+- [ ] 11-02-PLAN.md — Extend createStderrLogger to scrub tokens on all four logger levels + unit tests (M15)
 
 ### Phase 12: Documentation — Setup Flow & Consistency
 **Goal**: Fix security-relevant documentation gaps and reduce setup friction by adding prerequisites, pinning example versions, and adding troubleshooting.
@@ -206,7 +214,11 @@ Plans:
   9. Examples section position improved in README
   10. `multi-project-vm.md` has back-link to `basic-setup.md`
   11. Troubleshooting section added with common issues
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — README.md: Prerequisites section, config table improvements, bot invite fix, audit clarity, Examples repositioning, Troubleshooting section
+- [ ] 12-02-PLAN.md — Example version pins, manifest comment fix, multi-project back-link
 
 ### Phase 13: Documentation — Content Polish
 **Goal**: Improve clarity and consistency in docs and changelog — rewrite jargon-heavy opening, fix placeholder syntax, update config descriptions, and fix changelog.
@@ -262,9 +274,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 6. Shutdown & Lifecycle Hardening | 0/0 | Absorbed → Phase 10 | — |
 | 7. Config & Security Tightening | 0/0 | Complete    | 2026-03-27 |
 | 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
-| 9. Handler Architecture — wireHandlers Extraction | 0/0 | Pending | — |
+| 9. Handler Architecture — wireHandlers Extraction | 2/2 | Complete   | 2026-03-28 |
 | 10. Interactive Handler Hardening | 0/0 | Pending | — |
-| 11. CI/CD Supply Chain Hardening | 0/0 | Pending | — |
-| 12. Documentation — Setup Flow & Consistency | 0/0 | Pending | — |
+| 11. CI/CD Supply Chain Hardening | 2/2 | Complete    | 2026-03-28 |
+| 12. Documentation — Setup Flow & Consistency | 2/2 | Complete    | 2026-03-28 |
 | 13. Documentation — Content Polish | 0/0 | Pending | — |
 | 14. Test Coverage Gaps | 0/0 | Pending | — |
