@@ -5,7 +5,7 @@
 
 **Control Claude Code from Slack. Approve dangerous tool calls without opening a terminal.**
 
-An MCP server that bridges Claude Code sessions to a Slack channel via Socket Mode. Claude receives commands from Slack, replies in threads, and posts permission prompts that operators approve or deny — all from their phone if they want to. No webhooks, no public URLs, no port forwarding.
+An MCP server (a tool-plugin process that Claude Code loads on startup) that bridges Claude Code sessions to a Slack channel via Socket Mode (a WebSocket connection — no public URL required). Claude receives commands from Slack, replies in threads, and posts permission prompts that operators approve or deny — all from their phone if they want to. No webhooks, no public URLs, no port forwarding.
 
 ```
   You (Slack)                               Claude Code
@@ -169,7 +169,7 @@ Send a new top-level message to start a fresh session. The old thread is abandon
 | `SLACK_APP_TOKEN` | Yes | App-level token for Socket Mode (starts with `xapp-`) |
 | `SLACK_CHANNEL_ID` | Yes | Channel to listen on (e.g. `C0XXXXXXXXX`) |
 | `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands. Format: `U0XXXXXXXXX` (regular) or `W0XXXXXXXXX` (workspace accounts) |
-| `SERVER_NAME` | No | Identifier in Claude's context. Defaults to `slack`. Useful when running multiple instances. |
+| `SERVER_NAME` | No | Appears as the MCP server name in Claude's tool list. Defaults to `slack`. Useful when running multiple instances. |
 
 ---
 
