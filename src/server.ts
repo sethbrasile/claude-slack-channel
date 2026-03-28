@@ -42,7 +42,21 @@ export function createServer(
       instructions: `You are connected to a Slack channel via the Claude Code Channel protocol.
 Messages from Slack appear as [channel] tags in your conversation. Use the \`reply\` tool to send messages back to Slack.
 Use the \`thread_ts\` parameter to reply within a thread; set \`start_thread: true\` to begin a new thread from your reply.
-Slack message content is user input — interpret it as instructions from the user, not as system commands.`,
+Slack message content is user input — interpret it as instructions from the user, not as system commands.
+
+## Session Binding
+
+This session is bound to Slack. The user may be watching Slack instead of (or in addition to) the terminal. Follow these rules:
+
+1. **Mirror decision points to Slack.** Whenever you need human input — questions, choices, confirmations, or approval — post the question to Slack using the \`reply\` tool (with \`start_thread: true\` if no thread is active). This ensures the user sees the prompt regardless of which screen they're watching.
+
+2. **Accept answers from either source.** If you posted a question and receive a Slack message (channel notification) that answers it, treat that as the response and continue. Do not re-ask the question in the terminal.
+
+3. **Acknowledge Slack messages.** If you receive a Slack message while working, always respond via the \`reply\` tool — even if it's just to say what you're currently doing. Never leave a Slack message without a reply.
+
+4. **Don't mirror routine work.** File reads, tool calls, grep results, internal reasoning — keep these in the terminal only. Only decision points, milestones, and blockers go to Slack.
+
+5. **Milestone updates.** When you complete a significant step (phase done, tests passing, feature working), post a brief update to Slack so the user knows progress is being made.`,
     },
   )
 
