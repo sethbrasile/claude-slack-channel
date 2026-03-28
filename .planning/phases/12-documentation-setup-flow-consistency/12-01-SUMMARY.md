@@ -63,7 +63,7 @@ completed: 2026-03-28
 
 Each task was committed atomically:
 
-1. **Task 1: Add Prerequisites section and remove inline Bun block quotes** - `0f2262c` (feat)
+1. **Task 1: Add Prerequisites section and remove inline Bun block quotes** - `aa2f2d1` (feat)
 2. **Task 2: Fix config table, bot invite, and audit step clarity** - `3bbd257` (feat)
 3. **Task 3: Reposition Examples before Comparison and add Troubleshooting** - `b1ad74f` (feat)
 
@@ -102,6 +102,6 @@ None - no external service configuration required.
 
 - README.md: FOUND
 - 12-01-SUMMARY.md: FOUND
-- Commit 0f2262c (Task 1): FOUND
+- Commit aa2f2d1 (Task 1): FOUND
 - Commit 3bbd257 (Task 2): FOUND
 - Commit b1ad74f (Task 3): FOUND
