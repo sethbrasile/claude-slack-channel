@@ -32,9 +32,15 @@ Claude Code can run unattended — but sometimes it needs a human to approve a d
 
 ---
 
-## Quick start
+## Prerequisites
 
-> **Requires [Bun](https://bun.sh).** Use `bunx` to run. `npx` will not work — the entry point is TypeScript executed directly by Bun.
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code) v2.1.80+** with a [claude.ai](https://claude.ai) login. An API key alone is not sufficient — the Channel protocol requires claude.ai authentication.
+- **[Bun](https://bun.sh)** installed. Use `bunx` to run. `npx` will not work — the entry point is TypeScript executed directly by Bun.
+- **Slack workspace admin or app-management permissions** to create and install a Slack app.
+
+---
+
+## Quick start
 
 ### 1. Create a Slack app
 
@@ -110,8 +116,6 @@ This is a small, focused codebase — the audit should take under a minute. Read
 # In terminal:
 claude --dangerously-load-development-channels server:slack
 ```
-
-> Requires Claude Code v2.1.80+ and a [claude.ai](https://claude.ai) login (API key alone is not sufficient).
 
 ---
 
