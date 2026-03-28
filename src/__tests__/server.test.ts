@@ -1,7 +1,8 @@
 import { describe, expect, it, mock } from 'bun:test'
 import type { WebClient } from '@slack/web-api'
-import { createServer } from '../server.ts'
+import { createServer, makeReplyHandler, wireHandlers } from '../server.ts'
 import type { ThreadTracker } from '../threads.ts'
+import type { ChannelConfig, PermissionRequest } from '../types.ts'
 
 const TEST_CONFIG = {
   channelId: 'C0123456789',
@@ -289,5 +290,137 @@ describe('createServer with injected deps — reply tool handler', () => {
     const firstContent = (result.content as { type: string; text: string }[])[0]
     expect(firstContent?.type).toBe('text')
     expect(firstContent?.text).toBe('sent')
+  })
+})
+
+describe('makeReplyHandler — direct unit tests (M14)', () => {
+  // Tests invoke makeReplyHandler directly without going through createServer or the CLI block.
+  // SDK-version-dependent handler access pattern from the describe block above applies here too.
+
+  function makeDeps() {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return null
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const handler = makeReplyHandler(
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      TEST_CONFIG as ChannelConfig,
+    )
+    return { handler, mockPostMessage, mockTracker }
+  }
+
+  it('returns { content: [{ type: "text", text: "sent" }] } on success', async () => {
+    const { handler } = makeDeps()
+    const result = await handler({
+      params: { name: 'reply', arguments: { text: 'hello' } },
+    })
+    expect(result.content[0]?.type).toBe('text')
+    expect(result.content[0]?.text).toBe('sent')
+    expect(result.isError).toBeUndefined()
+  })
+
+  it('returns { isError: true } for unknown tool name', async () => {
+    const { handler } = makeDeps()
+    const result = await handler({
+      params: { name: 'nonexistent', arguments: {} },
+    })
+    expect(result.isError).toBe(true)
+    expect(result.content[0]?.text).toContain('Unknown tool')
+  })
+
+  it('returns { isError: true } for missing required text argument', async () => {
+    const { handler } = makeDeps()
+    const result = await handler({
+      params: { name: 'reply', arguments: { thread_ts: '111' } },
+    })
+    expect(result.isError).toBe(true)
+    expect(result.content[0]?.text).toContain('Invalid arguments')
+  })
+
+  it('strips <!channel> broadcast mention', async () => {
+    const { handler, mockPostMessage } = makeDeps()
+    await handler({ params: { name: 'reply', arguments: { text: 'Hello <!channel>' } } })
+    const callArgs = (mockPostMessage.mock.calls as unknown as { text: string }[][])[0]?.[0]
+    expect(callArgs?.text).not.toContain('<!channel>')
+  })
+
+  it('calls tracker.startThread(ts) when start_thread: true', async () => {
+    const { handler, mockTracker } = makeDeps()
+    await handler({
+      params: { name: 'reply', arguments: { text: 'question?', start_thread: true } },
+    })
+    const startCalls = mockTracker.startThread.mock.calls as unknown as string[][]
+    expect(startCalls.length).toBe(1)
+    expect(startCalls[0]?.[0]).toBe('111.222')
+  })
+})
+
+describe('wireHandlers — handler registration (M2)', () => {
+  // Tests confirm that wireHandlers registers both the reply tool and permission notification
+  // handlers on the server. Uses SDK-private _requestHandlers/_notificationHandlers (SDK-version-dependent).
+
+  function makeDeps() {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return null
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const pendingPermissions = new Map<string, { params: PermissionRequest }>()
+    const server = createServer(TEST_CONFIG as ChannelConfig)
+    wireHandlers(
+      server,
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      TEST_CONFIG as ChannelConfig,
+      pendingPermissions,
+    )
+    return { server, mockPostMessage, mockTracker, pendingPermissions }
+  }
+
+  it('registers the tools/call handler on the server', () => {
+    const { server } = makeDeps()
+    const handlers = (server as unknown as { _requestHandlers?: Map<string, unknown> })
+      ._requestHandlers
+    expect(handlers?.has('tools/call')).toBe(true)
+  })
+
+  it('registers the permission_request notification handler on the server', () => {
+    const { server } = makeDeps()
+    // SDK-version-dependent: _notificationHandlers map is keyed by the full method string
+    const handlers = (server as unknown as { _notificationHandlers?: Map<string, unknown> })
+      ._notificationHandlers
+    expect(handlers?.has('notifications/claude/channel/permission_request')).toBe(true)
+  })
+
+  it('createServer(config, { web, tracker }) registers the permission notification handler (M2)', () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return null
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const server = createServer(TEST_CONFIG as ChannelConfig, {
+      web: mockWeb as unknown as WebClient,
+      tracker: mockTracker as unknown as ThreadTracker,
+    })
+    const handlers = (server as unknown as { _notificationHandlers?: Map<string, unknown> })
+      ._notificationHandlers
+    expect(handlers?.has('notifications/claude/channel/permission_request')).toBe(true)
   })
 })
