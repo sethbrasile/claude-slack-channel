@@ -178,7 +178,11 @@ Plans:
   5. `shutdown()` drains interactive callbacks (via messageQueue) before closing transport
   6. Interactive handler has unit tests covering: happy path, double-click dedup, unknown request_id, malformed payload
   7. `bun test` passes
-**Plans**: 0 plans (pending)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — InteractiveBodySchema Zod validation in slack-client.ts + PendingPermissionEntry type with TTL/cap in server.ts (M5, L1)
+- [ ] 10-02-PLAN.md — Extract makeInteractiveHandler factory, route through messageQueue, add unit tests (H1, M1, M13)
 
 ### Phase 11: CI/CD Supply Chain Hardening
 **Goal**: Pin GitHub Actions to immutable SHAs, add missing quality gates to the release workflow, tighten permissions, and complete logger scrubbing.
