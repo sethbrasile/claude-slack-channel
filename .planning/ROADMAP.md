@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Shutdown & Lifecycle Hardening** - Make shutdown idempotent and fix drain race (QC fix) (absorbed into Phase 10)
 - [x] **Phase 7: Config & Security Tightening** - Close validation gap and defense-in-depth items (QC fix) (completed 2026-03-27)
 - [x] **Phase 8: CI/CD Polish** - Tighten release safety and reduce CI waste (QC fix) (completed 2026-03-27)
-- [ ] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix)
+- [x] **Phase 9: Handler Architecture — wireHandlers Extraction** - Eliminate CLI-block isolation, deduplicate reply handler, make all handlers testable (QC fix) (completed 2026-03-28)
 - [ ] **Phase 10: Interactive Handler Hardening** - Fix race condition, add validation, make testable, fix shutdown drain (QC fix)
 - [ ] **Phase 11: CI/CD Supply Chain Hardening** - SHA-pin actions, complete release quality gates, tighten permissions (QC fix)
 - [ ] **Phase 12: Documentation — Setup Flow & Consistency** - Fix security-relevant doc gaps and reduce setup friction (QC fix)
@@ -274,7 +274,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 6. Shutdown & Lifecycle Hardening | 0/0 | Absorbed → Phase 10 | — |
 | 7. Config & Security Tightening | 0/0 | Complete    | 2026-03-27 |
 | 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
-| 9. Handler Architecture — wireHandlers Extraction | 1/2 | In Progress|  |
+| 9. Handler Architecture — wireHandlers Extraction | 2/2 | Complete   | 2026-03-28 |
 | 10. Interactive Handler Hardening | 0/0 | Pending | — |
 | 11. CI/CD Supply Chain Hardening | 0/2 | Pending | — |
 | 12. Documentation — Setup Flow & Consistency | 0/0 | Pending | — |
