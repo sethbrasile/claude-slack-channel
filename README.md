@@ -210,6 +210,13 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ---
 
+## Examples
+
+- [Basic setup](./examples/basic-setup.md) — single project, start to finish
+- [Multi-project VM](./examples/multi-project-vm.md) — multiple server instances on a shared machine
+
+---
+
 ## Comparison with community implementation
 
 | | This package | [jeremylongshore/claude-code-slack-channel](https://github.com/jeremylongshore/claude-code-slack-channel) |
@@ -226,10 +233,15 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ---
 
-## Examples
+## Troubleshooting
 
-- [Basic setup](./examples/basic-setup.md) — single project, start to finish
-- [Multi-project VM](./examples/multi-project-vm.md) — multiple server instances on a shared machine
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| Claude doesn't respond to messages | Bot not invited to channel, or wrong `SLACK_CHANNEL_ID` | Run `/invite @Claude` in the channel; verify the channel ID matches the `C0...` segment in the URL |
+| Server starts but disconnects immediately | Invalid `SLACK_APP_TOKEN` (must start with `xapp-`) or `connections:write` scope missing | Check token prefix; verify the scope was added when generating the app-level token under **Basic Information > App-Level Tokens** |
+| "Invalid config" on startup | Missing or malformed env vars | Check all four required vars are set; user IDs must start with `U` or `W` |
+| Permission buttons appear but clicking does nothing | Interactivity not enabled in the Slack app | Verify interactivity is enabled in Slack app settings (the manifest enables it by default) |
+| Works locally but fails on a remote VM | Firewall blocking outbound WebSocket | Socket Mode uses port 443 outbound only — confirm outbound HTTPS is allowed |
 
 ---
 
