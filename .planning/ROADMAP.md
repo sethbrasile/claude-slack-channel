@@ -274,7 +274,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 6. Shutdown & Lifecycle Hardening | 0/0 | Absorbed → Phase 10 | — |
 | 7. Config & Security Tightening | 0/0 | Complete    | 2026-03-27 |
 | 8. CI/CD Polish | 0/0 | Complete    | 2026-03-27 |
-| 9. Handler Architecture — wireHandlers Extraction | 0/0 | Pending | — |
+| 9. Handler Architecture — wireHandlers Extraction | 1/2 | In Progress|  |
 | 10. Interactive Handler Hardening | 0/0 | Pending | — |
 | 11. CI/CD Supply Chain Hardening | 0/2 | Pending | — |
 | 12. Documentation — Setup Flow & Consistency | 0/0 | Pending | — |

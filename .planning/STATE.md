@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-27T20:51:03.543Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-28T18:54:56.156Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
-  total_phases: 8
+  total_phases: 14
   completed_phases: 8
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 18
+  completed_plans: 13
   percent: 50
 ---
 
@@ -58,6 +58,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03-testing-ci P02 | 1 | 2 tasks | 2 files |
 | Phase 04-package-documentation P01 | 2 | 2 tasks | 5 files |
 | Phase 04-package-documentation P02 | 3 | 2 tasks | 6 files |
+| Phase 09-handler-architecture-wirehandlers-extraction P01 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 04-package-documentation]: bunx-only invocation: npx explicitly warned as unsupported because bin points to .ts file Node.js cannot execute
 - [Phase 04-package-documentation]: Multi-project pattern documented as multiple independent processes — matches actual architecture (no multi-channel mode exists)
 - [Phase 04-package-documentation]: CHANGELOG initialized with both [Unreleased] and [0.1.0] sections to support release workflow
+- [Phase 09-handler-architecture-wirehandlers-extraction]: PermissionRequestSchema moved to permission.ts — schema co-located with domain validation functions, importable by wireHandlers and tests
+- [Phase 09-handler-architecture-wirehandlers-extraction]: pendingPermissions uses Map<string, { params: PermissionRequest }> — canonical interface from types.ts replaces anonymous 4-field inline type
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T05:23:44.093Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-28T18:54:56.153Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
