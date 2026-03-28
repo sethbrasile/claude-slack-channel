@@ -5,6 +5,8 @@ on:
     tags:
       - "v*"
 
+permissions: {}
+
 jobs:
   release:
     name: Publish to npm + Create Release
@@ -13,7 +15,7 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v6.0.2       # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - name: Validate tag matches package.json version
         run: |
           PKG_VERSION=$(node -e "const p=require('./package.json'); console.log(p.version)")
@@ -23,11 +25,14 @@ jobs:
             exit 1
           fi
           echo "Version check passed: ${TAG_NAME} matches package.json v${PKG_VERSION}"
-      - uses: oven-sh/setup-bun@v2.2.0      # v2.0.3
-      - uses: actions/setup-node@v6.3.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6   # v2.2.0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f   # v6.3.0
         with:
           node-version: "24.x"
+          registry-url: 'https://registry.npmjs.org'
       - run: bun install --frozen-lockfile
+      - run: bun audit
+      - run: bunx biome check .
       - run: bunx tsc --noEmit
       - run: bun test --coverage
       - run: npm publish --provenance --access public
