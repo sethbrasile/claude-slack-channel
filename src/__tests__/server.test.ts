@@ -1,6 +1,8 @@
 import { describe, expect, it, mock } from 'bun:test'
 import type { WebClient } from '@slack/web-api'
-import { createServer, makeReplyHandler, wireHandlers } from '../server.ts'
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { createServer, makeInteractiveHandler, makeReplyHandler, wireHandlers } from '../server.ts'
+import type { InteractiveAction } from '../slack-client.ts'
 import type { ThreadTracker } from '../threads.ts'
 import type { ChannelConfig, PendingPermissionEntry } from '../types.ts'
 
@@ -422,5 +424,96 @@ describe('wireHandlers — handler registration (M2)', () => {
     const handlers = (server as unknown as { _notificationHandlers?: Map<string, unknown> })
       ._notificationHandlers
     expect(handlers?.has('notifications/claude/channel/permission_request')).toBe(true)
+  })
+})
+
+describe('makeInteractiveHandler — direct unit tests (M13)', () => {
+  // Tests invoke makeInteractiveHandler directly without going through createServer or the CLI block.
+  // Button action_id format: permission_approve_{5-char-id} or permission_deny_{5-char-id}
+  // where ID is 5 lowercase letters from [a-km-z] (no 'l').
+
+  // Valid request_id: 'abcde' — all chars in [a-km-z]
+  const REQUEST_ID = 'abcde'
+
+  function makeDeps() {
+    const mockUpdate = mock(() => Promise.resolve({ ok: true }))
+    const mockNotification = mock(() => Promise.resolve())
+    const mockServer = { notification: mockNotification }
+    const mockWeb = { chat: { update: mockUpdate } }
+    const pendingPermissions = new Map<string, PendingPermissionEntry>()
+    const handler = makeInteractiveHandler(
+      mockWeb as unknown as WebClient,
+      mockServer as unknown as Server,
+      pendingPermissions,
+      TEST_CONFIG as ChannelConfig,
+    )
+    return { handler, mockUpdate, mockNotification, pendingPermissions }
+  }
+
+  // A valid action with matching request_id
+  const VALID_ACTION: InteractiveAction = {
+    action_id: `permission_approve_${REQUEST_ID}`,
+    user: 'U0123456789',
+    channel: 'C0123456789',
+    message_ts: '1234567890.000100',
+  }
+
+  function seedPending(pendingPermissions: Map<string, PendingPermissionEntry>) {
+    pendingPermissions.set(REQUEST_ID, {
+      params: {
+        request_id: REQUEST_ID,
+        tool_name: 'bash',
+        description: 'Run a shell command',
+        input_preview: 'echo hello',
+      },
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    })
+  }
+
+  it('happy path: sends verdict notification and updates Slack message', async () => {
+    const { handler, mockUpdate, mockNotification, pendingPermissions } = makeDeps()
+    seedPending(pendingPermissions)
+
+    await handler(VALID_ACTION)
+
+    expect(mockNotification.mock.calls.length).toBe(1)
+    const notifCall = (mockNotification.mock.calls as unknown as { method: string }[][])[0]?.[0]
+    expect(notifCall?.method).toBe('notifications/claude/channel/permission')
+    expect(mockUpdate.mock.calls.length).toBe(1)
+  })
+
+  it('double-click dedup: second call with same request_id is a no-op', async () => {
+    const { handler, mockUpdate, mockNotification, pendingPermissions } = makeDeps()
+    seedPending(pendingPermissions)
+
+    await handler(VALID_ACTION)
+    await handler(VALID_ACTION)
+
+    expect(mockNotification.mock.calls.length).toBe(1)
+    expect(mockUpdate.mock.calls.length).toBe(1)
+  })
+
+  it('unknown request_id: no notification sent', async () => {
+    const { handler, mockNotification } = makeDeps()
+    // pendingPermissions is empty — request_id not found
+
+    await handler(VALID_ACTION)
+
+    expect(mockNotification.mock.calls.length).toBe(0)
+  })
+
+  it('malformed action_id: no notification sent', async () => {
+    const { handler, mockNotification, mockUpdate } = makeDeps()
+    const malformedAction: InteractiveAction = {
+      action_id: 'not_a_button_action',
+      user: 'U0123456789',
+      channel: 'C0123456789',
+      message_ts: '1234567890.000100',
+    }
+
+    await handler(malformedAction)
+
+    expect(mockNotification.mock.calls.length).toBe(0)
+    expect(mockUpdate.mock.calls.length).toBe(0)
   })
 })
