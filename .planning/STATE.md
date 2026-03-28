@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-28T19:11:29.637Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-28T23:26:22.104Z"
 last_activity: 2026-03-26 — 02-01 complete; ThreadTracker + formatInboundNotification implemented (48 tests pass)
 progress:
   total_phases: 14
   completed_phases: 11
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 23
+  completed_plans: 20
   percent: 50
 ---
 
@@ -64,6 +64,7 @@ Progress: [█████░░░░░] 50%
 | Phase 12-documentation-setup-flow-consistency P02 | 1 | 2 tasks | 3 files |
 | Phase 11-cicd-supply-chain-hardening P02 | 1 | 1 tasks | 2 files |
 | Phase 12-documentation-setup-flow-consistency P01 | 2 | 3 tasks | 1 files |
+| Phase 10-interactive-handler-hardening P01 | 6 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,9 @@ Recent decisions affecting current work:
 - [Phase 11-cicd-supply-chain-hardening]: safeErrorMessage applied uniformly to all four logger levels via .map() — consistent defense-in-depth token scrubbing in createStderrLogger
 - [Phase 12-documentation-setup-flow-consistency]: Both block quotes removed (Bun note + v2.1.80+ note) — content now lives in Prerequisites, eliminating duplication
 - [Phase 12-documentation-setup-flow-consistency]: Examples repositioned before Comparison — higher utility content comes first for new users
+- [Phase 10-interactive-handler-hardening]: InteractiveBodySchema uses safeParse + stderr log on failure — invalid payloads rejected with diagnostic, not silently swallowed
+- [Phase 10-interactive-handler-hardening]: isDuplicateTs extracted as pure function with explicit seenTs + now params — matches validateEventTs/shouldProcessMessage testing seam pattern
+- [Phase 10-interactive-handler-hardening]: PENDING_PERMISSIONS_TTL_MS=10min, PENDING_PERMISSIONS_MAX_SIZE=100 — constants named for grep-ability; TTL sweep + oldest-eviction on every set()
 
 ### Pending Todos
 
@@ -120,6 +124,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T19:06:55.727Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-28T23:26:12.931Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
