@@ -377,9 +377,7 @@ describe('makeReplyHandler — direct unit tests (M14)', () => {
 
   // M11 — postMessage ok:false returns isError:true
   it('returns isError: true when chat.postMessage returns ok: false', async () => {
-    const mockPostMessage = mock(() =>
-      Promise.resolve({ ok: false, error: 'channel_not_found' }),
-    )
+    const mockPostMessage = mock(() => Promise.resolve({ ok: false, error: 'channel_not_found' }))
     const mockTracker = {
       startThread: mock((_ts: string) => {}),
       abandon: mock(() => {}),
