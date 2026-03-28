@@ -14,7 +14,7 @@ import {
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
-import { createSlackClient } from './slack-client.ts'
+import { type InteractiveAction, createSlackClient } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig, PendingPermissionEntry, PermissionRequest } from './types.ts'
 
@@ -150,6 +150,56 @@ function makePermissionHandler(
 }
 
 /**
+ * Factory for the interactive button-click handler. Returns the handler that processes
+ * Approve/Deny button actions on permission request messages.
+ *
+ * Exported for direct unit testing (M13) — allows tests to invoke handler logic
+ * without going through createServer or the CLI block.
+ *
+ * Critical ordering in body:
+ * 1. parseButtonAction — returns null if action_id doesn't match the button pattern
+ * 2. pendingPermissions.get() — may be undefined if already handled (double-click) or expired
+ * 3. EARLY RETURN if !pending — before server.notification() — prevents double-notification
+ * 4. pendingPermissions.delete() — remove before await so re-entrant call sees it gone
+ * 5. server.notification() — only reached on first call
+ */
+export function makeInteractiveHandler(
+  web: WebClient,
+  server: Server,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
+  _config: ChannelConfig,
+) {
+  return async (action: InteractiveAction): Promise<void> => {
+    const verdict = parseButtonAction(action.action_id)
+    if (!verdict) return
+
+    const pending = pendingPermissions.get(verdict.request_id)
+    if (!pending) return // already handled (double-click) or expired
+
+    pendingPermissions.delete(verdict.request_id)
+
+    await server.notification({
+      method: 'notifications/claude/channel/permission',
+      params: verdict as unknown as Record<string, unknown>,
+    })
+
+    const approved = verdict.behavior === 'allow'
+    const updated = formatPermissionResult(pending.params, action.user, approved)
+    try {
+      await web.chat.update({
+        channel: action.channel,
+        ts: action.message_ts,
+        text: updated.text,
+        // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+        blocks: updated.blocks as any,
+      })
+    } catch (err) {
+      console.error('[permission] chat.update failed:', safeErrorMessage(err))
+    }
+  }
+}
+
+/**
  * Composition root for handler registration. Registers both:
  * - CallToolRequestSchema → makeReplyHandler (reply tool)
  * - PermissionRequestSchema → makePermissionHandler (permission relay)
@@ -268,6 +318,12 @@ if (import.meta.main) {
   // with the result after a button click. Keyed by request_id.
   const pendingPermissions = new Map<string, PendingPermissionEntry>()
 
+  // Late-binding reference — assigned after createSlackClient returns web.
+  // The thin wrapper below closes over this variable; real events only fire
+  // after socketMode.start(), which runs after assignment, so the brief
+  // unassigned window is safe.
+  let handleInteractive: ((action: InteractiveAction) => Promise<void>) | undefined
+
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
     config.slackBotToken,
@@ -321,42 +377,22 @@ if (import.meta.main) {
     },
     // Interactive button handler (Approve/Deny clicks on permission requests).
     // Auth check (ALLOWED_USER_IDS) is enforced inside createSlackClient before
-    // this callback is invoked.
-    async (action) => {
-      try {
-        const verdict = parseButtonAction(action.action_id)
-        if (!verdict) return
-
-        const pending = pendingPermissions.get(verdict.request_id)
-        pendingPermissions.delete(verdict.request_id)
-
-        // Forward the verdict to Claude Code
-        await server.notification({
-          method: 'notifications/claude/channel/permission',
-          params: verdict as unknown as Record<string, unknown>,
-        })
-
-        // Update the Slack message to replace buttons with result
-        if (pending) {
-          const approved = verdict.behavior === 'allow'
-          const updated = formatPermissionResult(pending.params, action.user, approved)
-          try {
-            await web.chat.update({
-              channel: action.channel,
-              ts: action.message_ts,
-              text: updated.text,
-              // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
-              blocks: updated.blocks as any,
-            })
-          } catch (err) {
-            console.error('[permission] chat.update failed:', safeErrorMessage(err))
-          }
+    // this callback is invoked. Routed through messageQueue so button-click work
+    // is serialized with onMessage work and drained during shutdown.
+    (action) => {
+      messageQueue = messageQueue.then(async () => {
+        try {
+          await handleInteractive?.(action)
+        } catch (err) {
+          console.error('[server] onInteractive failed:', safeErrorMessage(err))
         }
-      } catch (err) {
-        console.error('[server] onInteractive failed:', safeErrorMessage(err))
-      }
+      })
     },
   )
+
+  // Assign interactive handler now that web is available. Must happen before
+  // socketMode.start() so real events see the fully initialized handler.
+  handleInteractive = makeInteractiveHandler(web, server, pendingPermissions, config)
 
   // Wire all handlers via composition root — registers reply tool and permission
   // notification handler. Called after server.connect() so the transport is ready,
