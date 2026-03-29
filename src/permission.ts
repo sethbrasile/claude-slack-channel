@@ -25,9 +25,11 @@ export function parsePermissionReply(text: string): PermissionVerdict | null {
   }
 }
 
-/** Strip Slack broadcast mentions to prevent @channel/@here notifications */
+/** Strip Slack broadcast mentions and user mentions to prevent notification pings */
 function stripMentions(s: string): string {
-  return s.replaceAll('<!', '<\u200b!')
+  return s
+    .replaceAll('<!', '<\u200b!') // broadcast: <!channel>, <!here>, <!everyone>, <!subteam^>
+    .replaceAll('<@', '<\u200b@') // user mentions: <@U12345>
 }
 
 /**
@@ -124,6 +126,10 @@ export function formatPermissionResult(
   userId: string,
   approved: boolean,
 ): PermissionBlocks {
+  // Validate userId format — must be a Slack user/workspace ID
+  if (!/^[UW][A-Z0-9]+$/.test(userId)) {
+    console.error(`[permission] formatPermissionResult: invalid userId format: "${userId}"`)
+  }
   const emoji = approved ? ':white_check_mark:' : ':x:'
   const action = approved ? 'Approved' : 'Denied'
   const resultText = `${emoji} ${action} by <@${userId}>`

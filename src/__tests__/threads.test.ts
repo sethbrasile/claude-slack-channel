@@ -54,7 +54,9 @@ describe('ThreadTracker', () => {
     expect(result).toBe('new_input')
   })
 
-  it("classifyMessage('') returns new_input — empty string treated as top-level", () => {
+  it("explicit empty-string guard: classifyMessage('') returns new_input (explicit guard, not falsy coercion)", () => {
+    tracker.startThread('111.222')
+    // '' is NOT a thread reply — explicit guard handles empty string before the falsy check
     const result: MessageClassification = tracker.classifyMessage('')
     expect(result).toBe('new_input')
   })

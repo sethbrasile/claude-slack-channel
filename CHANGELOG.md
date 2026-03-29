@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> These versions were developed and released on the same day during initial build. Dates reflect the initial publish date.
+
 ## [Unreleased]
 
 ## [0.3.0] - 2026-03-27
@@ -21,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-03-27
 
 ### Breaking Changes
+
+These changes affect library consumers only (code that imports from `claude-slack-channel` directly). CLI users running via `bunx` are unaffected.
 
 - **`createServer()` signature changed** — accepts optional second argument `{ web?, tracker? }` for dependency injection. Library consumers can now get a fully functional server with reply handling by passing deps. The previous stub reply handler (returned `'sent'` for all calls) is no longer registered when deps are omitted.
 - **`isDuplicate()` removed** — dead code export deleted from `slack-client.ts`. Use the deduplication built into `createSlackClient()` instead.
@@ -53,3 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zod config validation with field-level error messages and token scrubbing
 - GitHub Actions CI workflow (typecheck, lint, test on push/PR)
 - GitHub Actions release workflow (npm publish with provenance on v* tags)
+
+[Unreleased]: https://github.com/sethbrasile/claude-slack-channel/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sethbrasile/claude-slack-channel/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/sethbrasile/claude-slack-channel/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/sethbrasile/claude-slack-channel/releases/tag/v0.1.0

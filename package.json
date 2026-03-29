@@ -1,7 +1,7 @@
 {
   "name": "claude-slack-channel",
   "version": "0.3.4",
-  "description": "Claude Code Channel MCP server for Slack — bidirectional interactive bridge via Socket Mode",
+  "description": "Claude Code Channel MCP server for Slack \u2014 bidirectional interactive bridge via Socket Mode",
   "type": "module",
   "bin": {
     "claude-slack-channel": "src/server.ts"
@@ -24,8 +24,7 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
-    "slack-app-manifest.yaml",
-    "examples"
+    "slack-app-manifest.yaml"
   ],
   "license": "MIT",
   "repository": {

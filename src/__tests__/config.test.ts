@@ -23,6 +23,12 @@ describe('parseConfig', () => {
     expect(config.allowedUserIds).toEqual(['U111', 'U222', 'U333'])
   })
 
+  // L16 — ALLOWED_USER_IDS trim behavior
+  it('trims whitespace from individual user IDs in ALLOWED_USER_IDS', () => {
+    const config = parseConfig({ ...VALID_ENV, ALLOWED_USER_IDS: ' U123 , U456 ' })
+    expect(config.allowedUserIds).toEqual(['U123', 'U456'])
+  })
+
   it('uses SERVER_NAME default of "slack" when not provided', () => {
     const config = parseConfig(VALID_ENV)
     expect(config.serverName).toBe('slack')
@@ -142,5 +148,12 @@ describe('safeErrorMessage', () => {
 
   it('handles non-Error values', () => {
     expect(safeErrorMessage('plain string')).toBe('plain string')
+  })
+
+  // L19 — mid-word token (token embedded within a larger word)
+  it('masks xoxb- token embedded in a word (mid-word token)', () => {
+    const result = safeErrorMessage(new Error('errorxoxb-123abc'))
+    expect(result).toContain('[REDACTED]')
+    expect(result).not.toContain('xoxb-')
   })
 })

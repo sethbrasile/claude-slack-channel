@@ -10,6 +10,8 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "strict": true,
+    // suppresses type errors in .d.ts files from dependencies; needed because some
+    // third-party type declarations are incompatible with strict mode settings
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,

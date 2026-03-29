@@ -14,9 +14,9 @@ import {
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
-import { createSlackClient } from './slack-client.ts'
+import { createSlackClient, type InteractiveAction } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
-import type { ChannelConfig, PermissionRequest } from './types.ts'
+import type { ChannelConfig, PendingPermissionEntry, PermissionRequest } from './types.ts'
 
 // Module-level schema — used in makeReplyHandler (library path) and CLI block via wireHandlers
 const ReplyArgsSchema = z.object({
@@ -24,6 +24,10 @@ const ReplyArgsSchema = z.object({
   thread_ts: z.string().optional(),
   start_thread: z.boolean().optional(),
 })
+
+// TTL and size cap for pending permission entries
+const PENDING_PERMISSIONS_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const PENDING_PERMISSIONS_MAX_SIZE = 100
 
 /**
  * Factory for the reply tool handler. Returns the handler function that processes
@@ -50,9 +54,9 @@ export function makeReplyHandler(web: WebClient, tracker: ThreadTracker, config:
       }
     }
     const args = parsed.data
-    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>)
-    // to prevent Claude's replies from triggering workspace-wide notifications
-    const text = args.text.replaceAll('<!', '<\u200b!')
+    // Strip Slack broadcast mentions (<!channel>, <!here>, <!everyone>) AND
+    // user mentions (<@U12345>) to prevent notifications and mention pings
+    const text = args.text.replaceAll('<!', '<\u200b!').replaceAll('<@', '<\u200b@')
     // Explicit thread_ts takes priority; otherwise fall back to the active
     // thread so follow-up replies stay threaded automatically.
     // start_thread omits thread_ts so the message posts top-level.
@@ -99,12 +103,26 @@ function makePermissionHandler(
   web: WebClient,
   tracker: ThreadTracker,
   config: ChannelConfig,
-  pendingPermissions: Map<string, { params: PermissionRequest }>,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
 ) {
   return async ({ params }: { params: PermissionRequest }): Promise<void> => {
     const { text, blocks } = formatPermissionBlocks(params)
+    // TTL sweep: expire stale entries before inserting new one
+    const now = Date.now()
+    for (const [id, entry] of pendingPermissions.entries()) {
+      if (now > entry.expiresAt) pendingPermissions.delete(id)
+    }
+    // Size cap: evict oldest when full
+    if (pendingPermissions.size >= PENDING_PERMISSIONS_MAX_SIZE) {
+      console.error('[permission] pendingPermissions at capacity, dropping oldest entry')
+      const oldest = pendingPermissions.keys().next().value
+      if (oldest) pendingPermissions.delete(oldest)
+    }
     // Store the request so we can update the message after a button click
-    pendingPermissions.set(params.request_id, { params })
+    pendingPermissions.set(params.request_id, {
+      params,
+      expiresAt: now + PENDING_PERMISSIONS_TTL_MS,
+    })
     // Post the permission prompt IN the active thread so it appears inline
     // with the command that triggered it. Falls back to top-level if there
     // is no active thread (e.g. fire-and-forget command with no question phase).
@@ -132,6 +150,56 @@ function makePermissionHandler(
 }
 
 /**
+ * Factory for the interactive button-click handler. Returns the handler that processes
+ * Approve/Deny button actions on permission request messages.
+ *
+ * Exported for direct unit testing (M13) — allows tests to invoke handler logic
+ * without going through createServer or the CLI block.
+ *
+ * Critical ordering in body:
+ * 1. parseButtonAction — returns null if action_id doesn't match the button pattern
+ * 2. pendingPermissions.get() — may be undefined if already handled (double-click) or expired
+ * 3. EARLY RETURN if !pending — before server.notification() — prevents double-notification
+ * 4. pendingPermissions.delete() — remove before await so re-entrant call sees it gone
+ * 5. server.notification() — only reached on first call
+ */
+export function makeInteractiveHandler(
+  web: WebClient,
+  server: Server,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
+  _config: ChannelConfig,
+) {
+  return async (action: InteractiveAction): Promise<void> => {
+    const verdict = parseButtonAction(action.action_id)
+    if (!verdict) return
+
+    const pending = pendingPermissions.get(verdict.request_id)
+    if (!pending) return // already handled (double-click) or expired
+
+    pendingPermissions.delete(verdict.request_id)
+
+    await server.notification({
+      method: 'notifications/claude/channel/permission',
+      params: verdict as unknown as Record<string, unknown>,
+    })
+
+    const approved = verdict.behavior === 'allow'
+    const updated = formatPermissionResult(pending.params, action.user, approved)
+    try {
+      await web.chat.update({
+        channel: action.channel,
+        ts: action.message_ts,
+        text: updated.text,
+        // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+        blocks: updated.blocks as any,
+      })
+    } catch (err) {
+      console.error('[permission] chat.update failed:', safeErrorMessage(err))
+    }
+  }
+}
+
+/**
  * Composition root for handler registration. Registers both:
  * - CallToolRequestSchema → makeReplyHandler (reply tool)
  * - PermissionRequestSchema → makePermissionHandler (permission relay)
@@ -145,7 +213,7 @@ export function wireHandlers(
   web: WebClient,
   tracker: ThreadTracker,
   config: ChannelConfig,
-  pendingPermissions: Map<string, { params: PermissionRequest }>,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
 ): void {
   server.setRequestHandler(CallToolRequestSchema, makeReplyHandler(web, tracker, config))
   server.setNotificationHandler(
@@ -262,7 +330,13 @@ if (import.meta.main) {
 
   // Track pending permission requests so we can update the Slack message
   // with the result after a button click. Keyed by request_id.
-  const pendingPermissions = new Map<string, { params: PermissionRequest }>()
+  const pendingPermissions = new Map<string, PendingPermissionEntry>()
+
+  // Late-binding reference — assigned after createSlackClient returns web.
+  // The thin wrapper below closes over this variable; real events only fire
+  // after socketMode.start(), which runs after assignment, so the brief
+  // unassigned window is safe.
+  let handleInteractive: ((action: InteractiveAction) => Promise<void>) | undefined
 
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
@@ -317,42 +391,22 @@ if (import.meta.main) {
     },
     // Interactive button handler (Approve/Deny clicks on permission requests).
     // Auth check (ALLOWED_USER_IDS) is enforced inside createSlackClient before
-    // this callback is invoked.
-    async (action) => {
-      try {
-        const verdict = parseButtonAction(action.action_id)
-        if (!verdict) return
-
-        const pending = pendingPermissions.get(verdict.request_id)
-        pendingPermissions.delete(verdict.request_id)
-
-        // Forward the verdict to Claude Code
-        await server.notification({
-          method: 'notifications/claude/channel/permission',
-          params: verdict as unknown as Record<string, unknown>,
-        })
-
-        // Update the Slack message to replace buttons with result
-        if (pending) {
-          const approved = verdict.behavior === 'allow'
-          const updated = formatPermissionResult(pending.params, action.user, approved)
-          try {
-            await web.chat.update({
-              channel: action.channel,
-              ts: action.message_ts,
-              text: updated.text,
-              // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
-              blocks: updated.blocks as any,
-            })
-          } catch (err) {
-            console.error('[permission] chat.update failed:', safeErrorMessage(err))
-          }
+    // this callback is invoked. Routed through messageQueue so button-click work
+    // is serialized with onMessage work and drained during shutdown.
+    (action) => {
+      messageQueue = messageQueue.then(async () => {
+        try {
+          await handleInteractive?.(action)
+        } catch (err) {
+          console.error('[server] onInteractive failed:', safeErrorMessage(err))
         }
-      } catch (err) {
-        console.error('[server] onInteractive failed:', safeErrorMessage(err))
-      }
+      })
     },
   )
+
+  // Assign interactive handler now that web is available. Must happen before
+  // socketMode.start() so real events see the fully initialized handler.
+  handleInteractive = makeInteractiveHandler(web, server, pendingPermissions, config)
 
   // Wire all handlers via composition root — registers reply tool and permission
   // notification handler. Called after server.connect() so the transport is ready,
@@ -385,10 +439,18 @@ if (import.meta.main) {
     } catch (err) {
       console.error('[shutdown] messageQueue drain failed:', safeErrorMessage(err))
     }
+    // Forced-exit safety: if server.close() hangs, exit after 5 seconds
+    const forceExitTimer = setTimeout(() => {
+      console.error('[shutdown] forced exit after timeout')
+      process.exit(1)
+    }, 5000)
+    forceExitTimer.unref() // allow clean exit to proceed without waiting
     try {
       await server.close()
     } catch (err) {
       console.error('[shutdown] server.close failed:', safeErrorMessage(err))
+    } finally {
+      clearTimeout(forceExitTimer)
     }
     process.exit(0)
   }

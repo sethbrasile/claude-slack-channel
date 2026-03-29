@@ -119,5 +119,5 @@ Claude should respond in a thread within a few seconds.
 
 ## What's next
 
-- To approve or deny a tool call from Slack, reply `yes {id}` or `no {id}` in the active thread when a permission request appears.
+- When a permission request appears, click **Approve** or **Deny** in-thread. Or reply `yes a1b2c` / `no a1b2c` (replace `a1b2c` with the request ID shown in the prompt) as a text fallback.
 - For running Claude Code on multiple projects from a shared VM, see [examples/multi-project-vm.md](./multi-project-vm.md).
