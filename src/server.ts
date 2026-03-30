@@ -23,6 +23,7 @@ const ReplyArgsSchema = z.object({
   text: z.string(),
   thread_ts: z.string().optional(),
   start_thread: z.boolean().optional(),
+  audience: z.enum(['operator', 'detail']).optional(),
 })
 
 // TTL and size cap for pending permission entries
@@ -253,7 +254,19 @@ This session is bound to Slack. The user may be watching Slack instead of (or in
 
 4. **Don't mirror routine work.** File reads, tool calls, grep results, internal reasoning — keep these in the terminal only. Only decision points, milestones, and blockers go to Slack.
 
-5. **Milestone updates.** When you complete a significant step (phase done, tests passing, feature working), post a brief update to Slack so the user knows progress is being made.`,
+5. **Milestone updates.** When you complete a significant step (phase done, tests passing, feature working), post a brief update to Slack so the user knows progress is being made.
+
+## Output Classification
+
+Tag every reply with an \`audience\` parameter:
+- \`operator\` — decisions, errors, blockers, questions, milestone progress, completion summaries. Anything the user needs to see.
+- \`detail\` — full test output, build logs, diffs, verbose summaries. Useful but not urgent.
+
+When in doubt, use \`operator\`. The user can always ask for details.
+
+## Slack Commands
+
+When a Slack message starts with \`!\` (e.g. \`!gsd:progress\`, \`!help\`), treat the remainder as a slash command. Execute it as if the user typed that command in the terminal. Reply to Slack with the result.`,
     },
   )
 
@@ -277,6 +290,12 @@ This session is bound to Slack. The user may be watching Slack instead of (or in
             start_thread: {
               type: 'boolean',
               description: 'If true, start a new thread from this reply.',
+            },
+            audience: {
+              type: 'string',
+              enum: ['operator', 'detail'],
+              description:
+                'Who this message is for. "operator" = decisions, errors, milestones, progress. "detail" = full logs, diffs, verbose output. Defaults to operator.',
             },
           },
           required: ['text'],
@@ -458,6 +477,18 @@ if (import.meta.main) {
   process.on('SIGTERM', () => void shutdown('SIGTERM'))
   process.on('SIGINT', () => void shutdown('SIGINT'))
   process.stdin.on('close', () => void shutdown('stdin close'))
+
+  // Last-resort cleanup: 'exit' fires even when async shutdown didn't run
+  // (e.g., SIGKILL, abrupt pipe close). Only synchronous work is allowed here.
+  // Force-terminate the underlying WebSocket so Slack doesn't keep the
+  // connection alive until its own timeout expires.
+  process.on('exit', () => {
+    try {
+      socketMode.disconnect()
+    } catch {
+      // Best-effort — process is exiting regardless
+    }
+  })
 
   // Start Socket Mode LAST — events begin flowing only after the MCP
   // transport is ready and all handlers are registered.
