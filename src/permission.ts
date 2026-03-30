@@ -128,7 +128,36 @@ export function formatPermissionResult(
 ): PermissionBlocks {
   // Validate userId format — must be a Slack user/workspace ID
   if (!/^[UW][A-Z0-9]+$/.test(userId)) {
-    console.error(`[permission] formatPermissionResult: invalid userId format: "${userId}"`)
+    console.error(`[permission] formatPermissionResult: invalid userId format`)
+    // Fall back to a safe display instead of interpolating untrusted input
+    const emoji = approved ? ':white_check_mark:' : ':x:'
+    const action = approved ? 'Approved' : 'Denied'
+    const resultText = `${emoji} ${action} by unknown user`
+
+    const blocks: Record<string, unknown>[] = [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: [
+            `:lock: *Permission Request* \`${req.request_id}\``,
+            `*Tool:* \`${stripMentions(req.tool_name)}\``,
+            `*Action:* ${stripMentions(req.description)}`,
+            req.input_preview
+              ? `\`\`\`${stripMentions(req.input_preview.replaceAll('```', '``\u200b`'))}\`\`\``
+              : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        },
+      },
+      {
+        type: 'section',
+        text: { type: 'mrkdwn', text: resultText },
+      },
+    ]
+
+    return { text: `${formatPermissionRequest(req)}\n${resultText}`, blocks }
   }
   const emoji = approved ? ':white_check_mark:' : ':x:'
   const action = approved ? 'Approved' : 'Denied'

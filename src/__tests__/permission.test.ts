@@ -205,7 +205,7 @@ describe('formatPermissionResult', () => {
 
 // L4 — userId validation
 describe('formatPermissionResult userId validation', () => {
-  it('logs warning for invalid userId format (does not throw)', () => {
+  it('logs warning for invalid userId format and returns safe fallback (no user mention)', () => {
     const spy = spyOn(console, 'error').mockImplementation(() => {})
     const req = {
       request_id: 'abcde',
@@ -213,8 +213,11 @@ describe('formatPermissionResult userId validation', () => {
       description: 'run cmd',
       input_preview: '',
     }
-    formatPermissionResult(req, 'invalid-id', true)
+    const result = formatPermissionResult(req, 'invalid-id', true)
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('invalid userId format'))
+    // Should not interpolate the invalid userId into the output
+    expect(result.text).not.toContain('invalid-id')
+    expect(result.text).toContain('unknown user')
     spy.mockRestore()
   })
 })

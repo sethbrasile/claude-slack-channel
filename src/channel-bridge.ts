@@ -15,5 +15,9 @@ export function formatInboundNotification(msg: SlackMessage): ChannelNotificatio
   if (msg.thread_ts) {
     meta.thread_ts = msg.thread_ts // underscore only — hyphens silently dropped by protocol
   }
+  // Detect !command prefix — signals Claude should treat this as a skill invocation
+  if (/^!\S+/.test(msg.text)) {
+    meta.command_intent = 'true'
+  }
   return { content: msg.text, source: 'slack', meta }
 }
