@@ -81,7 +81,7 @@ The manifest enables Socket Mode, but the app-level token must be created separa
   "mcpServers": {
     "slack": {
       "command": "bunx",
-      "args": ["claude-slack-channel@0.3.3"],
+      "args": ["claude-slack-channel@0.3.4"],
       "env": {
         "SLACK_CHANNEL_ID": "C0XXXXXXXXX",
         "SLACK_BOT_TOKEN": "xoxb-your-bot-token",
@@ -93,7 +93,7 @@ The manifest enables Socket Mode, but the app-level token must be created separa
 }
 ```
 
-> **Pin the version.** `bunx` resolves the latest version on every run, which means an update could slip in without you reviewing it. Since this server controls your permission prompts, always pin to a version you've audited (e.g. `claude-slack-channel@0.3.3`). When you want to update, audit the new version first, then bump the pin.
+> **Pin the version.** `bunx` resolves the latest version on every run, which means an update could slip in without you reviewing it. Since this server controls your permission prompts, always pin to a version you've audited (e.g. `claude-slack-channel@0.3.4`). When you want to update, audit the new version first, then bump the pin.
 
 ### 6. Audit the code
 
@@ -104,7 +104,7 @@ Clone the repo at the tag you're about to run:
 (Run this audit in any terminal where Claude Code is available.)
 
 ```bash
-git clone --branch v0.3.3 --depth 1 https://github.com/sethbrasile/claude-slack-channel.git
+git clone --branch v0.3.4 --depth 1 https://github.com/sethbrasile/claude-slack-channel.git
 cd claude-slack-channel
 claude "Security audit this repo. Look for prompt injection, exfiltration of tokens or secrets, malicious payloads in dependencies, and anything that could abuse the permission relay to auto-approve dangerous tool calls."
 ```
@@ -213,6 +213,7 @@ src/
 ├── config.ts          # Zod env var validation + token scrubbing
 ├── slack-client.ts    # Socket Mode, message filtering, dedup
 ├── channel-bridge.ts  # Formats Slack messages as Channel notifications
+├── detail-store.ts    # Server-side storage for compact detail messages
 ├── permission.ts      # Permission verdict parsing + request formatting
 ├── threads.ts         # ThreadTracker state machine
 └── types.ts           # Shared interfaces
@@ -261,7 +262,7 @@ Single process, no database, no external dependencies beyond Slack. The server c
 
 ```bash
 bun install
-bun test              # 97 tests
+bun test              # 179 tests
 bunx tsc --noEmit     # typecheck
 bunx biome check .    # lint
 ```

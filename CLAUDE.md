@@ -37,6 +37,7 @@ src/
 ├── config.ts          # Zod-based env var validation
 ├── slack-client.ts    # Socket Mode connection + message filtering + dedup
 ├── channel-bridge.ts  # Format Slack messages as Channel notifications
+├── detail-store.ts    # Server-side storage for compact detail messages
 ├── permission.ts      # Permission relay formatting + verdict parsing
 ├── threads.ts         # Thread tracking and message classification
 └── __tests__/         # Bun test suite
