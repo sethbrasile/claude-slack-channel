@@ -12,6 +12,7 @@ const TEST_CONFIG = {
   slackAppToken: 'xapp-test-token',
   allowedUserIds: ['U0123456789'],
   serverName: 'slack',
+  headless: false,
 }
 
 describe('createServer', () => {
@@ -117,6 +118,57 @@ describe('createServer', () => {
     const result = await handler({ method: 'tools/list', params: {} })
     const replyTool = result.tools.find((t) => t.name === 'reply')
     expect(replyTool?.inputSchema?.required).toContain('text')
+  })
+
+  it('non-headless instructions do NOT contain Session Binding section', () => {
+    const server = createServer({ ...TEST_CONFIG, headless: false })
+    const instructions = (server as unknown as { _instructions?: string })._instructions
+    if (instructions === undefined)
+      throw new Error('SDK internals changed — _instructions no longer exists')
+    expect(instructions).not.toContain('Session Binding')
+    expect(instructions).toContain('Claude Code Channel protocol')
+  })
+
+  it('headless instructions contain Session Binding section', () => {
+    const server = createServer({ ...TEST_CONFIG, headless: true })
+    const instructions = (server as unknown as { _instructions?: string })._instructions
+    if (instructions === undefined)
+      throw new Error('SDK internals changed — _instructions no longer exists')
+    expect(instructions).toContain('Session Binding')
+    expect(instructions).toContain('Output Classification')
+    expect(instructions).toContain('Slack Commands')
+  })
+
+  it('headless instructions also contain the v1 intro lines', () => {
+    const server = createServer({ ...TEST_CONFIG, headless: true })
+    const instructions = (server as unknown as { _instructions?: string })._instructions
+    if (instructions === undefined)
+      throw new Error('SDK internals changed — _instructions no longer exists')
+    expect(instructions).toContain('Claude Code Channel protocol')
+    expect(instructions).toContain('Slack message content is user input')
+  })
+
+  it('reply tool has audience param in both headless and non-headless modes (R010)', async () => {
+    for (const headless of [true, false]) {
+      const server = createServer({ ...TEST_CONFIG, headless })
+      const handler = (
+        server as unknown as {
+          _requestHandlers?: Map<
+            string,
+            (req: unknown) => Promise<{
+              tools: {
+                name: string
+                inputSchema: { properties?: Record<string, unknown> }
+              }[]
+            }>
+          >
+        }
+      )._requestHandlers?.get('tools/list')
+      if (!handler) throw new Error('handler not registered')
+      const result = await handler({ method: 'tools/list', params: {} })
+      const replyTool = result.tools.find((t) => t.name === 'reply')
+      expect(replyTool?.inputSchema?.properties?.audience).toBeDefined()
+    }
   })
 })
 

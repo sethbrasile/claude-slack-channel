@@ -44,6 +44,21 @@ describe('parseConfig', () => {
     expect(config.channelId).toBe('G0123456789')
   })
 
+  it('parses HEADLESS=true as headless === true', () => {
+    const config = parseConfig({ ...VALID_ENV, HEADLESS: 'true' })
+    expect(config.headless).toBe(true)
+  })
+
+  it('parses HEADLESS=false as headless === false', () => {
+    const config = parseConfig({ ...VALID_ENV, HEADLESS: 'false' })
+    expect(config.headless).toBe(false)
+  })
+
+  it('defaults headless to false when HEADLESS is omitted', () => {
+    const config = parseConfig(VALID_ENV)
+    expect(config.headless).toBe(false)
+  })
+
   describe('validation failures', () => {
     let exitSpy: ReturnType<typeof spyOn>
 
