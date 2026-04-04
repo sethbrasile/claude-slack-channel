@@ -59,6 +59,21 @@ describe('parseConfig', () => {
     expect(config.headless).toBe(false)
   })
 
+  it('parses COMPACT_DETAILS=true as compactDetails === true', () => {
+    const config = parseConfig({ ...VALID_ENV, COMPACT_DETAILS: 'true' })
+    expect(config.compactDetails).toBe(true)
+  })
+
+  it('parses COMPACT_DETAILS=false as compactDetails === false', () => {
+    const config = parseConfig({ ...VALID_ENV, COMPACT_DETAILS: 'false' })
+    expect(config.compactDetails).toBe(false)
+  })
+
+  it('defaults compactDetails to false when COMPACT_DETAILS is omitted', () => {
+    const config = parseConfig(VALID_ENV)
+    expect(config.compactDetails).toBe(false)
+  })
+
   describe('validation failures', () => {
     let exitSpy: ReturnType<typeof spyOn>
 

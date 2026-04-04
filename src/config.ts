@@ -34,6 +34,10 @@ const ConfigSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === 'true'),
+  COMPACT_DETAILS: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
 })
 
 export function parseConfig(env: Record<string, string | undefined>): ChannelConfig {
@@ -62,6 +66,7 @@ export function parseConfig(env: Record<string, string | undefined>): ChannelCon
     allowedUserIds: result.data.ALLOWED_USER_IDS,
     serverName: result.data.SERVER_NAME,
     headless: result.data.HEADLESS,
+    compactDetails: result.data.COMPACT_DETAILS,
   }
 }
 

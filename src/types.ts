@@ -5,6 +5,12 @@ export interface ChannelConfig {
   allowedUserIds: string[]
   serverName: string
   headless: boolean
+  compactDetails: boolean
+}
+
+export interface DetailEntry {
+  text: string
+  storedAt: number
 }
 
 export interface PermissionRequest {

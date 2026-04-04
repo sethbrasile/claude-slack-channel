@@ -13,6 +13,7 @@ const TEST_CONFIG = {
   allowedUserIds: ['U0123456789'],
   serverName: 'slack',
   headless: false,
+  compactDetails: false,
 }
 
 describe('createServer', () => {
