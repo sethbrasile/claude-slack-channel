@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test'
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import type { WebClient } from '@slack/web-api'
+import { DetailStore } from '../detail-store.ts'
 import { createServer, makeInteractiveHandler, makeReplyHandler, wireHandlers } from '../server.ts'
 import type { InteractiveAction } from '../slack-client.ts'
 import type { ThreadTracker } from '../threads.ts'
@@ -629,5 +630,163 @@ describe('makeInteractiveHandler — direct unit tests (M13)', () => {
 
     expect(mockNotification.mock.calls.length).toBe(0)
     expect(mockUpdate.mock.calls.length).toBe(0)
+  })
+})
+
+describe('makeReplyHandler — compact detail storage (S02)', () => {
+  const COMPACT_CONFIG: ChannelConfig = {
+    channelId: 'C0123456789',
+    slackBotToken: 'xoxb-test-token',
+    slackAppToken: 'xapp-test-token',
+    allowedUserIds: ['U0123456789'],
+    serverName: 'slack',
+    headless: false,
+    compactDetails: true,
+  }
+
+  function makeDeps(config: ChannelConfig = COMPACT_CONFIG) {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return '999.000'
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const detailStore = new DetailStore()
+    const handler = makeReplyHandler(
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      config,
+      detailStore,
+    )
+    return { handler, mockPostMessage, mockTracker, detailStore }
+  }
+
+  it('compactDetails + audience:detail + threadTs → stores text, posts note, returns stored (compact)', async () => {
+    const { handler, mockPostMessage, detailStore } = makeDeps()
+    const result = await handler({
+      params: {
+        name: 'reply',
+        arguments: { text: 'Full build log here...', thread_ts: '888.000', audience: 'detail' },
+      },
+    })
+
+    // Should return 'stored (compact)' instead of 'sent'
+    expect(result.content[0]?.text).toBe('stored (compact)')
+    expect(result.isError).toBeUndefined()
+
+    // Should have stored the original text (not mention-stripped)
+    const stored = detailStore.retrieve('888.000')
+    expect(stored).toBe('Full build log here...')
+
+    // Should have posted a brief note, not the full text
+    expect(mockPostMessage.mock.calls.length).toBe(1)
+    const callArgs = (mockPostMessage.mock.calls as unknown as Record<string, unknown>[][])[0]?.[0]
+    expect(callArgs?.text).toContain('Details stored')
+    expect(callArgs?.text).toContain('details')
+    expect(callArgs?.thread_ts).toBe('888.000')
+    // The note text should NOT contain the original detail text
+    expect(callArgs?.text).not.toContain('Full build log here')
+  })
+
+  it('compactDetails + audience:detail + no threadTs → posts full text (fallback)', async () => {
+    // Override activeThreadTs to null so there's no thread context
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return null
+      },
+    }
+    const mockPostMsg = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockWeb = { chat: { postMessage: mockPostMsg } }
+    const store = new DetailStore()
+    const h = makeReplyHandler(
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      COMPACT_CONFIG,
+      store,
+    )
+
+    // No thread_ts arg, no activeThreadTs → threadTs is undefined → falls through to normal post
+    const result = await h({
+      params: {
+        name: 'reply',
+        arguments: { text: 'detail text', audience: 'detail' },
+      },
+    })
+
+    // Should post normally since there's no thread to key storage
+    expect(result.content[0]?.text).toBe('sent')
+    const callArgs = (mockPostMsg.mock.calls as unknown as Record<string, unknown>[][])[0]?.[0]
+    expect(callArgs?.text).not.toContain('Details stored')
+  })
+
+  it('compactDetails + audience:operator → posts full text (no storage)', async () => {
+    const { handler, mockPostMessage, detailStore } = makeDeps()
+    const result = await handler({
+      params: {
+        name: 'reply',
+        arguments: { text: 'Progress update', thread_ts: '888.000', audience: 'operator' },
+      },
+    })
+
+    expect(result.content[0]?.text).toBe('sent')
+    // Should NOT have stored anything
+    expect(detailStore.retrieve('888.000')).toBeNull()
+    // Should have posted the full text
+    const callArgs = (mockPostMessage.mock.calls as unknown as Record<string, unknown>[][])[0]?.[0]
+    expect(callArgs?.thread_ts).toBe('888.000')
+  })
+
+  it('compactDetails=false + audience:detail → posts full text (R011 backward compat)', async () => {
+    const { handler, mockPostMessage } = makeDeps({
+      ...COMPACT_CONFIG,
+      compactDetails: false,
+    })
+    const result = await handler({
+      params: {
+        name: 'reply',
+        arguments: { text: 'Full detail log', thread_ts: '888.000', audience: 'detail' },
+      },
+    })
+
+    // Should post normally when compactDetails is off
+    expect(result.content[0]?.text).toBe('sent')
+    const callArgs = (mockPostMessage.mock.calls as unknown as Record<string, unknown>[][])[0]?.[0]
+    expect(callArgs?.thread_ts).toBe('888.000')
+  })
+})
+
+describe('wireHandlers — with DetailStore param (S02)', () => {
+  it('registers tools/call handler when detailStore is passed', () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true, ts: '111.222' }))
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'new_input' as const),
+      get activeThreadTs() {
+        return null
+      },
+    }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const pendingPermissions = new Map<string, PendingPermissionEntry>()
+    const detailStore = new DetailStore()
+    const server = createServer(TEST_CONFIG as ChannelConfig)
+    wireHandlers(
+      server,
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      TEST_CONFIG as ChannelConfig,
+      pendingPermissions,
+      detailStore,
+    )
+    const handlers = (server as unknown as { _requestHandlers?: Map<string, unknown> })
+      ._requestHandlers
+    expect(handlers?.has('tools/call')).toBe(true)
   })
 })

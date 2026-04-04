@@ -7,6 +7,7 @@ import { z } from 'zod'
 import packageJson from '../package.json'
 import { formatInboundNotification } from './channel-bridge.ts'
 import { parseConfig, safeErrorMessage } from './config.ts'
+import { DetailStore } from './detail-store.ts'
 import {
   formatPermissionBlocks,
   formatPermissionResult,
@@ -73,7 +74,12 @@ const PENDING_PERMISSIONS_MAX_SIZE = 100
  * Exported for direct unit testing (M14) — allows tests to invoke handler logic
  * without going through createServer or the CLI block.
  */
-export function makeReplyHandler(web: WebClient, tracker: ThreadTracker, config: ChannelConfig) {
+export function makeReplyHandler(
+  web: WebClient,
+  tracker: ThreadTracker,
+  config: ChannelConfig,
+  detailStore?: DetailStore,
+) {
   return async (request: {
     params: { name: string; arguments?: unknown }
   }): Promise<{ content: { type: string; text: string }[]; isError?: boolean }> => {
@@ -101,6 +107,30 @@ export function makeReplyHandler(web: WebClient, tracker: ThreadTracker, config:
     const threadTs = args.start_thread
       ? undefined
       : (args.thread_ts ?? tracker.activeThreadTs ?? undefined)
+
+    // Compact detail storage: when enabled and audience is 'detail', store
+    // the original text server-side instead of posting full content to Slack.
+    // Requires a thread context (threadTs) to key the storage.
+    if (config.compactDetails && args.audience === 'detail' && detailStore && threadTs) {
+      try {
+        detailStore.store(threadTs, args.text)
+        await web.chat.postMessage({
+          channel: config.channelId,
+          text: '_Details stored — type `details` in this thread to view_',
+          thread_ts: threadTs,
+          unfurl_links: false,
+          unfurl_media: false,
+        })
+        return { content: [{ type: 'text', text: 'stored (compact)' }] }
+      } catch (err) {
+        const message = safeErrorMessage(err)
+        console.error('[reply] compact detail note failed:', message)
+        return {
+          content: [{ type: 'text', text: `Failed to send: ${message}` }],
+          isError: true,
+        }
+      }
+    }
 
     try {
       const result = await web.chat.postMessage({
@@ -252,8 +282,12 @@ export function wireHandlers(
   tracker: ThreadTracker,
   config: ChannelConfig,
   pendingPermissions: Map<string, PendingPermissionEntry>,
+  detailStore?: DetailStore,
 ): void {
-  server.setRequestHandler(CallToolRequestSchema, makeReplyHandler(web, tracker, config))
+  server.setRequestHandler(
+    CallToolRequestSchema,
+    makeReplyHandler(web, tracker, config, detailStore),
+  )
   server.setNotificationHandler(
     PermissionRequestSchema,
     makePermissionHandler(web, tracker, config, pendingPermissions),
@@ -318,7 +352,8 @@ export function createServer(
   // The CLI path creates the server without deps and calls wireHandlers after
   // web and tracker are initialized (see if (import.meta.main) block below).
   if (deps?.web && deps?.tracker) {
-    wireHandlers(server, deps.web, deps.tracker, config, new Map())
+    const detailStore = config.compactDetails ? new DetailStore() : undefined
+    wireHandlers(server, deps.web, deps.tracker, config, new Map(), detailStore)
   }
 
   return server
@@ -347,6 +382,10 @@ if (import.meta.main) {
 
   // Thread state machine — tracks active conversation threads
   const tracker = new ThreadTracker()
+
+  // Compact detail storage — stores audience:'detail' replies server-side
+  // when compactDetails is enabled, retrievable via 'details' keyword.
+  const detailStore = new DetailStore()
 
   // Create Slack client (does not start yet — returns { socketMode, web }).
   // Must be created after server.connect() so the onMessage callback can call
@@ -390,6 +429,33 @@ if (import.meta.main) {
               params: verdict as unknown as Record<string, unknown>,
             })
             return // do not forward as channel notification
+          }
+
+          // Compact details retrieval — 'details' or 'detail' in a thread
+          // retrieves stored detail text. Does NOT forward to Claude (R008).
+          if (config.compactDetails && /^details?$/i.test(msg.text) && msg.thread_ts) {
+            const stored = detailStore.retrieve(msg.thread_ts)
+            if (stored) {
+              const { text: fallback, blocks } = DetailStore.formatDetailBlocks(stored)
+              await web.chat.postMessage({
+                channel: config.channelId,
+                text: fallback,
+                // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+                blocks: blocks as any,
+                thread_ts: msg.thread_ts,
+                unfurl_links: false,
+                unfurl_media: false,
+              })
+            } else {
+              await web.chat.postMessage({
+                channel: config.channelId,
+                text: 'No details found for this thread (may have expired).',
+                thread_ts: msg.thread_ts,
+                unfurl_links: false,
+                unfurl_media: false,
+              })
+            }
+            return // do not forward to Claude
           }
 
           // Classify the message relative to the active thread
@@ -438,7 +504,7 @@ if (import.meta.main) {
   // Wire all handlers via composition root — registers reply tool and permission
   // notification handler. Called after server.connect() so the transport is ready,
   // and after pendingPermissions is declared so the permission handler can close over it.
-  wireHandlers(server, web, tracker, config, pendingPermissions)
+  wireHandlers(server, web, tracker, config, pendingPermissions, detailStore)
 
   // Idempotency guard — SIGTERM, SIGINT, and stdin close can fire simultaneously.
   // The guard ensures shutdown() executes its body exactly once.
