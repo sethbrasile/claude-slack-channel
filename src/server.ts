@@ -15,7 +15,7 @@ import {
   parseButtonAction,
   parsePermissionReply,
 } from './permission.ts'
-import { createSlackClient, type InteractiveAction } from './slack-client.ts'
+import { createSlackClient, type InteractiveAction, type SlackMessage } from './slack-client.ts'
 import { ThreadTracker } from './threads.ts'
 import type { ChannelConfig, PendingPermissionEntry, PermissionRequest } from './types.ts'
 
@@ -268,6 +268,92 @@ export function makeInteractiveHandler(
 }
 
 /**
+ * Factory for the onMessage callback. Returns the handler function that processes
+ * inbound Slack messages: permission verdict routing, compact details retrieval,
+ * thread classification, and channel notification forwarding.
+ *
+ * Exported for direct unit testing (S04) — allows tests to invoke handler logic
+ * without going through createServer or the CLI block.
+ */
+export function makeMessageHandler(
+  server: Server,
+  web: WebClient,
+  tracker: ThreadTracker,
+  config: ChannelConfig,
+  pendingPermissions: Map<string, PendingPermissionEntry>,
+  detailStore: DetailStore,
+) {
+  return async (msg: SlackMessage): Promise<void> => {
+    // Permission verdict check — MUST run before channel forwarding.
+    // A message matching yes/no {id} is consumed here as a verdict and is
+    // NOT forwarded as a notifications/claude/channel event.
+    // This mutual exclusivity is enforced by the early return below.
+    //
+    // Security note: verdict parsing runs only for messages that have already
+    // passed the ALLOWED_USER_IDS check inside createSlackClient, so a
+    // non-allowed user cannot inject a verdict.
+    const verdict = parsePermissionReply(msg.text)
+    if (verdict) {
+      pendingPermissions.delete(verdict.request_id)
+      await server.notification({
+        method: 'notifications/claude/channel/permission',
+        // SDK requires Record<string, unknown>; PermissionVerdict lacks an index signature so
+        // TypeScript needs the intermediate unknown cast to allow the conversion.
+        params: verdict as unknown as Record<string, unknown>,
+      })
+      return // do not forward as channel notification
+    }
+
+    // Compact details retrieval — 'details' or 'detail' in a thread
+    // retrieves stored detail text. Does NOT forward to Claude (R008).
+    if (config.compactDetails && /^details?$/i.test(msg.text) && msg.thread_ts) {
+      const stored = detailStore.retrieve(msg.thread_ts)
+      if (stored) {
+        const { text: fallback, blocks } = DetailStore.formatDetailBlocks(stored)
+        await web.chat.postMessage({
+          channel: config.channelId,
+          text: fallback,
+          // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+          blocks: blocks as any,
+          thread_ts: msg.thread_ts,
+          unfurl_links: false,
+          unfurl_media: false,
+        })
+      } else {
+        await web.chat.postMessage({
+          channel: config.channelId,
+          text: 'No details found for this thread (may have expired).',
+          thread_ts: msg.thread_ts,
+          unfurl_links: false,
+          unfurl_media: false,
+        })
+      }
+      return // do not forward to Claude
+    }
+
+    // Classify the message relative to the active thread
+    const classification = tracker.classifyMessage(msg.thread_ts)
+    if (classification === 'new_input') {
+      // Top-level message or reply to a stale/unknown thread:
+      // abandon the prior thread and treat this as a fresh command
+      tracker.abandon()
+    }
+
+    // Forward to Claude as a channel notification.
+    // params shape: { content: string, meta: Record<string, string> }
+    // Meta keys use underscores only — hyphens are silently dropped by the
+    // Channel protocol.
+    const params = formatInboundNotification(msg, { headless: config.headless })
+    await server.notification({
+      method: 'notifications/claude/channel',
+      // SDK requires Record<string, unknown>; ChannelNotificationParams lacks an index signature so
+      // TypeScript needs the intermediate unknown cast to allow the conversion.
+      params: params as unknown as Record<string, unknown>,
+    })
+  }
+}
+
+/**
  * Composition root for handler registration. Registers both:
  * - CallToolRequestSchema → makeReplyHandler (reply tool)
  * - PermissionRequestSchema → makePermissionHandler (permission relay)
@@ -404,6 +490,12 @@ if (import.meta.main) {
   // unassigned window is safe.
   let handleInteractive: ((action: InteractiveAction) => Promise<void>) | undefined
 
+  // Late-binding reference — assigned after createSlackClient returns web.
+  // The thin wrapper below closes over this variable; real events only fire
+  // after socketMode.start(), which runs after assignment, so the brief
+  // unassigned window is safe.
+  let onMessage: ((msg: SlackMessage) => Promise<void>) | undefined
+
   const { socketMode, web } = createSlackClient(
     config.slackAppToken,
     config.slackBotToken,
@@ -411,72 +503,7 @@ if (import.meta.main) {
     (msg) => {
       messageQueue = messageQueue.then(async () => {
         try {
-          // Permission verdict check — MUST run before channel forwarding.
-          // A message matching yes/no {id} is consumed here as a verdict and is
-          // NOT forwarded as a notifications/claude/channel event.
-          // This mutual exclusivity is enforced by the early return below.
-          //
-          // Security note: verdict parsing runs only for messages that have already
-          // passed the ALLOWED_USER_IDS check inside createSlackClient, so a
-          // non-allowed user cannot inject a verdict.
-          const verdict = parsePermissionReply(msg.text)
-          if (verdict) {
-            pendingPermissions.delete(verdict.request_id)
-            await server.notification({
-              method: 'notifications/claude/channel/permission',
-              // SDK requires Record<string, unknown>; PermissionVerdict lacks an index signature so
-              // TypeScript needs the intermediate unknown cast to allow the conversion.
-              params: verdict as unknown as Record<string, unknown>,
-            })
-            return // do not forward as channel notification
-          }
-
-          // Compact details retrieval — 'details' or 'detail' in a thread
-          // retrieves stored detail text. Does NOT forward to Claude (R008).
-          if (config.compactDetails && /^details?$/i.test(msg.text) && msg.thread_ts) {
-            const stored = detailStore.retrieve(msg.thread_ts)
-            if (stored) {
-              const { text: fallback, blocks } = DetailStore.formatDetailBlocks(stored)
-              await web.chat.postMessage({
-                channel: config.channelId,
-                text: fallback,
-                // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
-                blocks: blocks as any,
-                thread_ts: msg.thread_ts,
-                unfurl_links: false,
-                unfurl_media: false,
-              })
-            } else {
-              await web.chat.postMessage({
-                channel: config.channelId,
-                text: 'No details found for this thread (may have expired).',
-                thread_ts: msg.thread_ts,
-                unfurl_links: false,
-                unfurl_media: false,
-              })
-            }
-            return // do not forward to Claude
-          }
-
-          // Classify the message relative to the active thread
-          const classification = tracker.classifyMessage(msg.thread_ts)
-          if (classification === 'new_input') {
-            // Top-level message or reply to a stale/unknown thread:
-            // abandon the prior thread and treat this as a fresh command
-            tracker.abandon()
-          }
-
-          // Forward to Claude as a channel notification.
-          // params shape: { content: string, meta: Record<string, string> }
-          // Meta keys use underscores only — hyphens are silently dropped by the
-          // Channel protocol.
-          const params = formatInboundNotification(msg, { headless: config.headless })
-          await server.notification({
-            method: 'notifications/claude/channel',
-            // SDK requires Record<string, unknown>; ChannelNotificationParams lacks an index signature so
-            // TypeScript needs the intermediate unknown cast to allow the conversion.
-            params: params as unknown as Record<string, unknown>,
-          })
+          await onMessage?.(msg)
         } catch (err) {
           console.error('[server] onMessage failed:', safeErrorMessage(err))
         }
@@ -500,6 +527,10 @@ if (import.meta.main) {
   // Assign interactive handler now that web is available. Must happen before
   // socketMode.start() so real events see the fully initialized handler.
   handleInteractive = makeInteractiveHandler(web, server, pendingPermissions, config)
+
+  // Assign message handler now that web is available. Same late-binding pattern
+  // as handleInteractive — safe because socketMode.start() runs below.
+  onMessage = makeMessageHandler(server, web, tracker, config, pendingPermissions, detailStore)
 
   // Wire all handlers via composition root — registers reply tool and permission
   // notification handler. Called after server.connect() so the transport is ready,
