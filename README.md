@@ -170,6 +170,18 @@ Send a new top-level message to start a fresh session. The old thread is abandon
 | `SLACK_CHANNEL_ID` | Yes | Channel to listen on (e.g. `C0XXXXXXXXX`) |
 | `ALLOWED_USER_IDS` | Yes | Comma-separated Slack user IDs allowed to send commands. Format: `U0XXXXXXXXX` (regular) or `W0XXXXXXXXX` (workspace accounts) |
 | `SERVER_NAME` | No | Appears as the MCP server name in Claude's tool list. Defaults to `slack`. Useful when running multiple instances. |
+| `HEADLESS` | No | Set to `true` to enable headless mode — switches to session-binding instructions and adds mode meta to notifications. Default: `false` |
+| `COMPACT_DETAILS` | No | Set to `true` to store detail-audience replies server-side instead of posting full text. Retrieve with `details` in a thread. Only meaningful when `HEADLESS=true`. Default: `false` |
+
+---
+
+## Headless Mode
+
+When `HEADLESS=true`, the server switches Claude's instructions to a session-binding protocol designed for unattended operation on VMs or long-running machines. Claude mirrors decision points, blockers, and milestone updates to Slack — treating the channel as the primary interface — while keeping routine tool output in the terminal. Replies are tagged with an `audience` field (`operator` or `detail`) so the operator sees only what matters.
+
+The optional `COMPACT_DETAILS` feature works with headless mode: when enabled, `detail`-audience replies (build logs, full diffs, verbose output) are stored server-side instead of posted in full. Type `details` in a thread to retrieve the stored content on demand.
+
+See [Headless Setup Guide](./docs/headless-setup.md) for tmux/screen setup, systemd patterns, and troubleshooting.
 
 ---
 
