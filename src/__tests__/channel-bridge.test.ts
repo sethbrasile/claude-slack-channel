@@ -78,4 +78,16 @@ describe('formatInboundNotification', () => {
     const hyphenKeys = keys.filter((k) => k.includes('-'))
     expect(hyphenKeys).toHaveLength(0)
   })
+
+  it('sets meta.command_intent when text starts with !', () => {
+    const msg = { ...baseMessage, text: '!gsd:progress' }
+    const result = formatInboundNotification(msg)
+    expect(result.meta?.command_intent).toBe('true')
+  })
+
+  it('does not set meta.command_intent for normal messages', () => {
+    const msg = { ...baseMessage, text: 'normal message' }
+    const result = formatInboundNotification(msg)
+    expect(result.meta?.command_intent).toBeUndefined()
+  })
 })

@@ -456,6 +456,28 @@ describe('makeReplyHandler — direct unit tests (M14)', () => {
     expect(result.content[0]?.text).toContain('Failed to send')
   })
 
+  it('returns isError: true when chat.postMessage throws a network error (L-07)', async () => {
+    const mockPostMessage = mock(() => Promise.reject(new Error('network timeout')))
+    const handlerWithBrokenNet = makeReplyHandler(
+      { chat: { postMessage: mockPostMessage } } as unknown as WebClient,
+      {
+        startThread: mock(() => {}),
+        abandon: mock(() => {}),
+        classifyMessage: mock(() => 'new_input' as const),
+        get activeThreadTs() {
+          return null
+        },
+      } as unknown as ThreadTracker,
+      TEST_CONFIG as ChannelConfig,
+    )
+    const result = await handlerWithBrokenNet({
+      params: { name: 'reply', arguments: { text: 'hello' } },
+    })
+    expect(result.isError).toBe(true)
+    expect(result.content[0]?.text).toContain('Failed to send')
+    expect(result.content[0]?.text).toContain('network timeout')
+  })
+
   // L3 — <@ user mention stripping in reply
   it('strips <@U12345> user mention from reply text', async () => {
     const { handler, mockPostMessage } = makeDeps()
@@ -948,6 +970,67 @@ describe('makeMessageHandler — direct unit tests (S04)', () => {
     expect(mockPostMessage.mock.calls.length).toBe(0)
     // Pending entry should be deleted
     expect(pendingPermissions.has(REQUEST_ID)).toBe(false)
+  })
+
+  it('thread_reply classification → does NOT call abandon(), still forwards to Claude (M-05)', async () => {
+    const mockPostMessage = mock(() => Promise.resolve({ ok: true }))
+    const mockNotification = mock(() => Promise.resolve())
+    const mockServer = { notification: mockNotification }
+    const mockWeb = { chat: { postMessage: mockPostMessage } }
+    const mockTracker = {
+      startThread: mock((_ts: string) => {}),
+      abandon: mock(() => {}),
+      classifyMessage: mock((_ts: string | undefined) => 'thread_reply' as const),
+      get activeThreadTs() {
+        return '999.000'
+      },
+    }
+    const pendingPermissions = new Map<string, PendingPermissionEntry>()
+    const detailStore = new DetailStore()
+    const config: ChannelConfig = { ...COMPACT_CONFIG }
+    const handler = makeMessageHandler(
+      mockServer as unknown as Server,
+      mockWeb as unknown as WebClient,
+      mockTracker as unknown as ThreadTracker,
+      config,
+      pendingPermissions,
+      detailStore,
+    )
+
+    await handler(makeMsg({ text: 'continue working', thread_ts: '999.000' }))
+
+    // Should forward to Claude
+    expect(mockNotification.mock.calls.length).toBe(1)
+    const notifCall = (mockNotification.mock.calls as unknown as { method: string }[][])[0]?.[0]
+    expect(notifCall?.method).toBe('notifications/claude/channel')
+    // Should NOT call abandon — message is a thread reply to the active thread
+    expect(mockTracker.abandon.mock.calls.length).toBe(0)
+  })
+
+  it('new_input classification → calls abandon() before forwarding (M-05)', async () => {
+    const { handler, mockNotification, mockTracker } = makeDeps()
+
+    await handler(makeMsg({ text: 'new command' }))
+
+    // Should call abandon (new_input)
+    expect(mockTracker.abandon.mock.calls.length).toBe(1)
+    // Should still forward to Claude
+    expect(mockNotification.mock.calls.length).toBe(1)
+  })
+
+  it('detail retrieval handles chat.postMessage failure gracefully (M-02)', async () => {
+    const { handler, mockPostMessage, mockNotification, detailStore } = makeDeps()
+    const threadTs = '999.000'
+    detailStore.store(threadTs, 'Build output')
+    mockPostMessage.mockImplementation(() => Promise.reject(new Error('network_error')))
+
+    // Should not throw — error is caught internally
+    await handler(makeMsg({ text: 'details', thread_ts: threadTs }))
+
+    // Should have attempted to post
+    expect(mockPostMessage.mock.calls.length).toBe(1)
+    // Should NOT forward to Claude
+    expect(mockNotification.mock.calls.length).toBe(0)
   })
 })
 

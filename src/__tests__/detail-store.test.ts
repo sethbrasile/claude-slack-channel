@@ -57,6 +57,12 @@ describe('DetailStore', () => {
     // Second entry should still be there
     expect(store.retrieve('ts-1')).toBe('entry-1')
   })
+
+  it('stores and retrieves empty string (L-08)', () => {
+    const store = new DetailStore()
+    store.store('ts-empty', '')
+    expect(store.retrieve('ts-empty')).toBe('')
+  })
 })
 
 describe('DetailStore.formatDetailBlocks', () => {
@@ -68,15 +74,18 @@ describe('DetailStore.formatDetailBlocks', () => {
   })
 
   it('text > 3000 chars splits into multiple blocks', () => {
-    const longText = 'a'.repeat(BLOCK_TEXT_LIMIT + 500)
+    const chunkSize = BLOCK_TEXT_LIMIT - 6 // 2994 — reserves space for ``` wrapper
+    const longText = 'a'.repeat(chunkSize + 500)
     const result = DetailStore.formatDetailBlocks(longText)
     expect(result.blocks.length).toBe(2)
 
     const firstBlock = result.blocks[0] as { text: { text: string } }
     const secondBlock = result.blocks[1] as { text: { text: string } }
 
-    // First block should have BLOCK_TEXT_LIMIT chars inside the code fence
-    expect(firstBlock.text.text).toBe(`\`\`\`${'a'.repeat(BLOCK_TEXT_LIMIT)}\`\`\``)
+    // First block should have chunkSize chars inside the code fence
+    expect(firstBlock.text.text).toBe(`\`\`\`${'a'.repeat(chunkSize)}\`\`\``)
+    // Wrapped block text must not exceed Slack's 3000-char section limit
+    expect(firstBlock.text.text.length).toBeLessThanOrEqual(BLOCK_TEXT_LIMIT)
     // Second block gets the remaining 500 chars
     expect(secondBlock.text.text).toBe(`\`\`\`${'a'.repeat(500)}\`\`\``)
   })

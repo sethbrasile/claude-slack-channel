@@ -32,6 +32,26 @@ function stripMentions(s: string): string {
     .replaceAll('<@', '<\u200b@') // user mentions: <@U12345>
 }
 
+/** Build the shared permission section block used by all permission formatters. */
+function buildPermissionSectionBlock(req: PermissionRequest): Record<string, unknown> {
+  return {
+    type: 'section',
+    text: {
+      type: 'mrkdwn',
+      text: [
+        `:lock: *Permission Request* \`${req.request_id}\``,
+        `*Tool:* \`${stripMentions(req.tool_name)}\``,
+        `*Action:* ${stripMentions(req.description)}`,
+        req.input_preview
+          ? `\`\`\`${stripMentions(req.input_preview.replaceAll('```', '``\u200b`'))}\`\`\``
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    },
+  }
+}
+
 /**
  * Formats a permission request as plain text (Slack mrkdwn).
  * Exported for testability — only called within permission.ts by formatPermissionBlocks
@@ -70,22 +90,7 @@ export function formatPermissionBlocks(req: PermissionRequest): PermissionBlocks
   const text = formatPermissionRequest(req)
 
   const blocks: Record<string, unknown>[] = [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: [
-          `:lock: *Permission Request* \`${req.request_id}\``,
-          `*Tool:* \`${stripMentions(req.tool_name)}\``,
-          `*Action:* ${stripMentions(req.description)}`,
-          req.input_preview
-            ? `\`\`\`${stripMentions(req.input_preview.replaceAll('```', '``\u200b`'))}\`\`\``
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      },
-    },
+    buildPermissionSectionBlock(req),
     {
       type: 'actions',
       elements: [
@@ -135,22 +140,7 @@ export function formatPermissionResult(
     const resultText = `${emoji} ${action} by unknown user`
 
     const blocks: Record<string, unknown>[] = [
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: [
-            `:lock: *Permission Request* \`${req.request_id}\``,
-            `*Tool:* \`${stripMentions(req.tool_name)}\``,
-            `*Action:* ${stripMentions(req.description)}`,
-            req.input_preview
-              ? `\`\`\`${stripMentions(req.input_preview.replaceAll('```', '``\u200b`'))}\`\`\``
-              : '',
-          ]
-            .filter(Boolean)
-            .join('\n'),
-        },
-      },
+      buildPermissionSectionBlock(req),
       {
         type: 'section',
         text: { type: 'mrkdwn', text: resultText },
@@ -164,22 +154,7 @@ export function formatPermissionResult(
   const resultText = `${emoji} ${action} by <@${userId}>`
 
   const blocks: Record<string, unknown>[] = [
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: [
-          `:lock: *Permission Request* \`${req.request_id}\``,
-          `*Tool:* \`${stripMentions(req.tool_name)}\``,
-          `*Action:* ${stripMentions(req.description)}`,
-          req.input_preview
-            ? `\`\`\`${stripMentions(req.input_preview.replaceAll('```', '``\u200b`'))}\`\`\``
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n'),
-      },
-    },
+    buildPermissionSectionBlock(req),
     {
       type: 'section',
       text: { type: 'mrkdwn', text: resultText },

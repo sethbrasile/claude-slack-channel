@@ -55,10 +55,13 @@ This session is bound to Slack. The user may be watching Slack instead of (or in
 ## Output Classification
 
 Tag every reply with an \`audience\` parameter:
-- \`operator\` — decisions, errors, blockers, questions, milestone progress, completion summaries. Anything the user needs to see.
-- \`detail\` — full test output, build logs, diffs, verbose summaries. Useful but not urgent.
+- \`operator\` — decisions, errors, blockers, questions, milestone progress, completion summaries. Anything the user needs to see. Keep these concise.
+- \`detail\` — full test output, build logs, diffs, file contents, verbose listings. Raw or lightly formatted output that supports the summary.
 
-When in doubt, use \`operator\`. The user can always ask for details.
+**Rules:**
+1. **You MUST call \`reply\` with \`audience: "operator"\` before calling \`reply\` with \`audience: "detail"\`.** The operator message is a 1-3 sentence summary. The detail message is the verbose content. Two separate \`reply\` tool calls, in that order.
+2. **Never send \`audience: "detail"\` without a preceding \`audience: "operator"\` reply in the same response.** The user may not see detail content immediately — the operator summary is their only signal.
+3. If there is nothing verbose to include, a single \`operator\` reply is fine — no detail call needed.
 
 ## Slack Commands
 
@@ -246,13 +249,18 @@ export function makeInteractiveHandler(
 
     pendingPermissions.delete(verdict.request_id)
 
-    await server.notification({
-      method: 'notifications/claude/channel/permission',
-      params: verdict as unknown as Record<string, unknown>,
-    })
-
     const approved = verdict.behavior === 'allow'
     const updated = formatPermissionResult(pending.params, action.user, approved)
+
+    try {
+      await server.notification({
+        method: 'notifications/claude/channel/permission',
+        params: verdict as unknown as Record<string, unknown>,
+      })
+    } catch (err) {
+      console.error('[permission] verdict notification failed:', safeErrorMessage(err))
+    }
+
     try {
       await web.chat.update({
         channel: action.channel,
@@ -308,25 +316,29 @@ export function makeMessageHandler(
     // retrieves stored detail text. Does NOT forward to Claude (R008).
     if (config.compactDetails && /^details?$/i.test(msg.text) && msg.thread_ts) {
       const stored = detailStore.retrieve(msg.thread_ts)
-      if (stored) {
-        const { text: fallback, blocks } = DetailStore.formatDetailBlocks(stored)
-        await web.chat.postMessage({
-          channel: config.channelId,
-          text: fallback,
-          // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
-          blocks: blocks as any,
-          thread_ts: msg.thread_ts,
-          unfurl_links: false,
-          unfurl_media: false,
-        })
-      } else {
-        await web.chat.postMessage({
-          channel: config.channelId,
-          text: 'No details found for this thread (may have expired).',
-          thread_ts: msg.thread_ts,
-          unfurl_links: false,
-          unfurl_media: false,
-        })
+      try {
+        if (stored) {
+          const { text: fallback, blocks } = DetailStore.formatDetailBlocks(stored)
+          await web.chat.postMessage({
+            channel: config.channelId,
+            text: fallback,
+            // biome-ignore lint/suspicious/noExplicitAny: Block Kit JSON doesn't match Slack's strict union type
+            blocks: blocks as any,
+            thread_ts: msg.thread_ts,
+            unfurl_links: false,
+            unfurl_media: false,
+          })
+        } else {
+          await web.chat.postMessage({
+            channel: config.channelId,
+            text: 'No details found for this thread (may have expired).',
+            thread_ts: msg.thread_ts,
+            unfurl_links: false,
+            unfurl_media: false,
+          })
+        }
+      } catch (err) {
+        console.error('[details] chat.postMessage failed:', safeErrorMessage(err))
       }
       return // do not forward to Claude
     }
@@ -503,7 +515,8 @@ if (import.meta.main) {
     (msg) => {
       messageQueue = messageQueue.then(async () => {
         try {
-          await onMessage?.(msg)
+          if (!onMessage) throw new Error('onMessage called before handler assigned')
+          await onMessage(msg)
         } catch (err) {
           console.error('[server] onMessage failed:', safeErrorMessage(err))
         }
@@ -516,7 +529,9 @@ if (import.meta.main) {
     (action) => {
       messageQueue = messageQueue.then(async () => {
         try {
-          await handleInteractive?.(action)
+          if (!handleInteractive)
+            throw new Error('handleInteractive called before handler assigned')
+          await handleInteractive(action)
         } catch (err) {
           console.error('[server] onInteractive failed:', safeErrorMessage(err))
         }

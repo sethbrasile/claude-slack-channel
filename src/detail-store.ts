@@ -76,8 +76,11 @@ export class DetailStore {
     const escaped = text.replaceAll('```', '``\u200b`')
     const chunks: string[] = []
 
-    for (let i = 0; i < escaped.length; i += BLOCK_TEXT_LIMIT) {
-      chunks.push(escaped.slice(i, i + BLOCK_TEXT_LIMIT))
+    // Reserve 6 chars for the triple-backtick code fence wrapper (``` prefix + ``` suffix)
+    // so the final section block text stays within Slack's 3000-char limit.
+    const chunkSize = BLOCK_TEXT_LIMIT - 6
+    for (let i = 0; i < escaped.length; i += chunkSize) {
+      chunks.push(escaped.slice(i, i + chunkSize))
     }
 
     const blocks: Record<string, unknown>[] = chunks.map((chunk) => ({
