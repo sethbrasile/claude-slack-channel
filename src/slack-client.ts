@@ -208,6 +208,11 @@ export function createSlackClient(
         return
       }
 
+      // Diagnostic log — omits message text to avoid leaking content to stderr
+      console.error(
+        `[slack-client] event: user=${event.user} channel=${event.channel} subtype=${event.subtype ?? 'none'}`,
+      )
+
       if (!shouldProcessMessage(event, filter)) return
 
       const ts = validateEventTs(event.ts)

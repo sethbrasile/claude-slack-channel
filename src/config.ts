@@ -30,6 +30,14 @@ const ConfigSchema = z.object({
       'SERVER_NAME must be alphanumeric with hyphens/underscores only',
     )
     .default('slack'),
+  HEADLESS: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+  COMPACT_DETAILS: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
 })
 
 export function parseConfig(env: Record<string, string | undefined>): ChannelConfig {
@@ -57,6 +65,8 @@ export function parseConfig(env: Record<string, string | undefined>): ChannelCon
     slackAppToken: result.data.SLACK_APP_TOKEN,
     allowedUserIds: result.data.ALLOWED_USER_IDS,
     serverName: result.data.SERVER_NAME,
+    headless: result.data.HEADLESS,
+    compactDetails: result.data.COMPACT_DETAILS,
   }
 }
 

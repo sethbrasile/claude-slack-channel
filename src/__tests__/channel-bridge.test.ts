@@ -56,4 +56,38 @@ describe('formatInboundNotification', () => {
     const result: ChannelNotificationParams = formatInboundNotification(emptyTextMessage)
     expect(result.content).toBe('')
   })
+
+  it('sets meta.mode to "headless" when options.headless is true', () => {
+    const result = formatInboundNotification(baseMessage, { headless: true })
+    expect(result.meta?.mode).toBe('headless')
+  })
+
+  it('does not set meta.mode when options.headless is false', () => {
+    const result = formatInboundNotification(baseMessage, { headless: false })
+    expect(result.meta?.mode).toBeUndefined()
+  })
+
+  it('does not set meta.mode when options is omitted (backward compat)', () => {
+    const result = formatInboundNotification(baseMessage)
+    expect(result.meta?.mode).toBeUndefined()
+  })
+
+  it('mode meta key uses underscore — no hyphens (BRDG-02 invariant)', () => {
+    const result = formatInboundNotification(baseMessage, { headless: true })
+    const keys = Object.keys(result.meta ?? {})
+    const hyphenKeys = keys.filter((k) => k.includes('-'))
+    expect(hyphenKeys).toHaveLength(0)
+  })
+
+  it('sets meta.command_intent when text starts with !', () => {
+    const msg = { ...baseMessage, text: '!gsd:progress' }
+    const result = formatInboundNotification(msg)
+    expect(result.meta?.command_intent).toBe('true')
+  })
+
+  it('does not set meta.command_intent for normal messages', () => {
+    const msg = { ...baseMessage, text: 'normal message' }
+    const result = formatInboundNotification(msg)
+    expect(result.meta?.command_intent).toBeUndefined()
+  })
 })

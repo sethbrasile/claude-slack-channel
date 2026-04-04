@@ -44,6 +44,36 @@ describe('parseConfig', () => {
     expect(config.channelId).toBe('G0123456789')
   })
 
+  it('parses HEADLESS=true as headless === true', () => {
+    const config = parseConfig({ ...VALID_ENV, HEADLESS: 'true' })
+    expect(config.headless).toBe(true)
+  })
+
+  it('parses HEADLESS=false as headless === false', () => {
+    const config = parseConfig({ ...VALID_ENV, HEADLESS: 'false' })
+    expect(config.headless).toBe(false)
+  })
+
+  it('defaults headless to false when HEADLESS is omitted', () => {
+    const config = parseConfig(VALID_ENV)
+    expect(config.headless).toBe(false)
+  })
+
+  it('parses COMPACT_DETAILS=true as compactDetails === true', () => {
+    const config = parseConfig({ ...VALID_ENV, COMPACT_DETAILS: 'true' })
+    expect(config.compactDetails).toBe(true)
+  })
+
+  it('parses COMPACT_DETAILS=false as compactDetails === false', () => {
+    const config = parseConfig({ ...VALID_ENV, COMPACT_DETAILS: 'false' })
+    expect(config.compactDetails).toBe(false)
+  })
+
+  it('defaults compactDetails to false when COMPACT_DETAILS is omitted', () => {
+    const config = parseConfig(VALID_ENV)
+    expect(config.compactDetails).toBe(false)
+  })
+
   describe('validation failures', () => {
     let exitSpy: ReturnType<typeof spyOn>
 

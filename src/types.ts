@@ -4,6 +4,13 @@ export interface ChannelConfig {
   slackAppToken: string
   allowedUserIds: string[]
   serverName: string
+  headless: boolean
+  compactDetails: boolean
+}
+
+export interface DetailEntry {
+  text: string
+  storedAt: number
 }
 
 export interface PermissionRequest {
